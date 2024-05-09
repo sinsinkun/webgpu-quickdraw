@@ -5,10 +5,11 @@ class Renderer {
   #device: GPUDevice | null = null;
   #format: GPUTextureFormat | null = null;
   #context: GPUCanvasContext | null = null;
+  // public properties
   frame: number = 0;
   clearColor: GPUColorDict = { r:0, g:0, b:0, a:1 };
 
-  // temp fields for rendering
+  // transient fields for rendering
   #renderpipe: GPURenderPipeline | null = null;
   #vertbuffer: GPUBuffer | null = null;
   #vertcount: number = 0;
