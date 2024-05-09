@@ -5,9 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite WGPU</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" defer src="/src/main.ts"></script>
   </head>
+
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <h1>WebGPU Canvas</h1>
+    <br />
+    <div class="container">
+      <canvas id="canvas" width="512" height="512"></canvas>
+      <div class="panel">
+        <button id="btn-frame+">Frame+</button>
+        <button id="btn-auto">Auto</button>
+        <div class="log-container" id="log-scroll">
+          <ul id="log">
+          </ul>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

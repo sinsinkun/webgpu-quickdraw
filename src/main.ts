@@ -1,24 +1,31 @@
-import './style.css'
-import typescriptLogo from './typescript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.ts'
+import { Renderer } from './renderer';
+import shader from './basic.wgsl?raw';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`
+// get HTML elements
+const canvas: HTMLCanvasElement | null = document.getElementById("canvas") as HTMLCanvasElement;
+const uilog: HTMLElement | null = document.getElementById("log");
+const scrollable: HTMLElement | null = document.getElementById("log-scroll");
+// const btn: HTMLElement | null = document.getElementById("btn-frame+");
+// const btn2: HTMLElement | null = document.getElementById("btn-auto");
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+// util function to print to UI
+function log(msg: string): void {
+  if (uilog) uilog.innerHTML += `<li>${(new Date()).toLocaleTimeString()}: ${msg}</li>`;
+  if (scrollable) scrollable.scrollTo(0, scrollable.scrollHeight);
+}
+
+try {
+
+  log("Hello world");
+  const renderer = new Renderer;
+  if (canvas) await renderer.init(canvas);
+  renderer.updateClearRGB(30, 10, 60);
+  const verts: Array<number> = [0.2, 0.2, 0.2, -0.2, -0.2, -0.2];
+  renderer.createPipeline(verts, shader);
+  renderer.draw();
+  log("Drew to canvas");
+
+} catch (err) {
+  console.log(err);
+  log(`${err}`);
+}
