@@ -1,4 +1,5 @@
-import { Renderer } from './renderer';
+import { Renderer, vec2 } from './renderer';
+import type { Vec2 } from './renderer';
 import shader from './basic.wgsl?raw';
 
 // get HTML elements
@@ -20,8 +21,11 @@ try {
   const renderer = new Renderer;
   if (canvas) await renderer.init(canvas);
   renderer.updateClearRGB(30, 10, 60);
-  const verts: Array<number> = [0.2, 0.2, 0.2, -0.2, -0.2, -0.2];
-  renderer.createPipeline(verts, shader);
+  const verts: Array<Vec2> = [
+    vec2.create(120, 120),vec2.create(120, -120),vec2.create(-120, -120),
+    vec2.create(120, 120),vec2.create(-120, 120),vec2.create(-120, -120),
+  ];
+  renderer.createPipeline2D(verts, shader);
   renderer.draw();
   log("Drew to canvas");
 
