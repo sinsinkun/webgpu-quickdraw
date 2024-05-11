@@ -1,7 +1,7 @@
 import { mat4, vec3 } from 'wgpu-matrix';
 import type { Vec4, Mat4 } from 'wgpu-matrix';
 
-// ---- TYPE DEFINITIONS ----
+//#region Types
 // render object information
 interface RenderObject {
   visible: boolean,
@@ -11,8 +11,10 @@ interface RenderObject {
   bindGroup: GPUBindGroup,
   bindEntries: Array<GPUBuffer>,
 }
+//#endregion Types
 
-// ---- MAIN BODY ----
+
+//#region Renderer Class
 // main renderer interface
 class Renderer {
   // private properties
@@ -223,8 +225,10 @@ class Renderer {
     this.#device.queue.submit([encoder.finish()]);
   }
 };
+//#endregion Renderer Class
 
-// ---- UTIL FUNCTIONS ----
+
+//#region Util functions
 // convert color to float range
 function colorRGB(r: number, g: number, b: number, a?: number): Vec4 {
   const color = new Float32Array(4);
@@ -251,6 +255,8 @@ function orthoProjMatrix(
     0, 0, 0, 1
   );
 }
+//#endregion Util functions
+
 
 export default Renderer;
 export { Renderer, colorRGB };
