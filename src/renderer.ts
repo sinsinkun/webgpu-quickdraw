@@ -1,11 +1,24 @@
 import { mat4, vec3 } from 'wgpu-matrix';
 import type { Vec4, Mat4 } from 'wgpu-matrix';
 
+// render object information
+interface RenderObject {
+  visible: boolean,
+  vertexBuffer: GPUBuffer,
+  vertexCount: number,
+  pipelineIndex: number,
+  bindGroup: GPUBindGroup,
+  bindEntries: Array<GPUBuffer>,
+}
+
+// main renderer interface
 class Renderer {
   // private properties
   #device: GPUDevice | null = null;
   #format: GPUTextureFormat | null = null;
   #context: GPUCanvasContext | null = null;
+  #msaa: GPUTextureView | null = null;
+  #pipelines: Array<GPURenderPipeline> = [];
   #objects: Array<RenderObject> = [];
   // public properties
   frame: number = 0;
@@ -27,12 +40,21 @@ class Renderer {
     const context = canvas?.getContext("webgpu");
     if (!context) throw new Error("Could not get canvas context");
     const format = navigator.gpu.getPreferredCanvasFormat();
-    context.configure({ device, format });
+    context.configure({ device, format, alphaMode: 'premultiplied' });
+
+    // create texture for MSAA antialiasing
+    const MsaaTexture = device.createTexture({
+      size: [canvas.width, canvas.height],
+      sampleCount: 4,
+      format: format,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT
+    });
 
     // retain initialized components
     this.#device = device;
     this.#context = context;
     this.#format = format;
+    this.#msaa = MsaaTexture.createView();
   }
   // change clear color
   updateClearRGB(r: number, g: number, b: number, a?: number) {
@@ -41,19 +63,8 @@ class Renderer {
     this.clearColor.b = b ? Math.floor(b)/255 : 0;
     this.clearColor.a = a ? Math.floor(a)/255 : 1;
   }
-  // create pipeline for rendering
-  addObject2D(id:number, name:string = "(Unnamed)", verts: Array<[number, number]>, shader: string) {
+  addPipeline2D(shader:string): number {
     if (!this.#device || !this.#format) throw new Error("Renderer not initialized");
-    // create vertex buffer
-    const verts1d: Array<number> = [];
-    verts.forEach((v: [number, number]) => verts1d.push(v[0], v[1]));
-    const vertices = new Float32Array(verts1d);
-    const vertexBuffer: GPUBuffer = this.#device.createBuffer({
-      label: "vertex-buffer",
-      size: vertices.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    });
-    this.#device.queue.writeBuffer(vertexBuffer, 0, vertices);
     // define layout
     const vbLayout: GPUVertexBufferLayout = {
       arrayStride: 8,
@@ -98,8 +109,27 @@ class Renderer {
         module: shaderModule,
         entryPoint: "fragmentMain",
         targets: [{ format: this.#format }]
+      },
+      multisample: {
+        count: 4,
       }
     });
+    this.#pipelines.push(pipeline);
+    return (this.#pipelines.length - 1);
+  }
+  // create pipeline for rendering
+  addObject2D(verts: Array<[number, number]>, pipelineIndex: number): number {
+    if (!this.#device) throw new Error("Renderer not initialized");
+    // create vertex buffer
+    const verts1d: Array<number> = [];
+    verts.forEach((v: [number, number]) => verts1d.push(v[0], v[1]));
+    const vertices = new Float32Array(verts1d);
+    const vertexBuffer: GPUBuffer = this.#device.createBuffer({
+      label: "vertex-buffer",
+      size: vertices.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    this.#device.queue.writeBuffer(vertexBuffer, 0, vertices);
     // create uniform buffers
     const mat4Size: number = 4 * 4 * 4; // mat4 32bit/4byte floats
     const modelMatBuffer: GPUBuffer = this.#device.createBuffer({
@@ -120,7 +150,7 @@ class Renderer {
     // create bind group
     const bindGroup0: GPUBindGroup = this.#device.createBindGroup({
       label: "bind-group-0",
-      layout: pipeline.getBindGroupLayout(0),
+      layout: this.#pipelines[pipelineIndex].getBindGroupLayout(0),
       entries: [
         {binding: 0, resource: { buffer: modelMatBuffer }},
         {binding: 1, resource: { buffer: viewMatBuffer }},
@@ -129,17 +159,16 @@ class Renderer {
     });
     // save to cache
     const obj: RenderObject = {
-      id,
-      name,
       visible: true,
-      pipeline,
       vertexBuffer,
       vertexCount: verts.length,
+      pipelineIndex: pipelineIndex,
       bindGroup: bindGroup0,
-      bindEntries: [modelMatBuffer, viewMatBuffer, projMatBuffer]
+      bindEntries: [modelMatBuffer, viewMatBuffer, projMatBuffer],
     };
     this.#objects.push(obj);
     this.updateObject2D(this.#objects.length - 1);
+    return this.#objects.length - 1;
   }
   // update buffers
   updateObject2D(
@@ -147,13 +176,12 @@ class Renderer {
     translate: [number, number] = [0, 0],
     rotate: number = 0,
     scale: number = 1,
-    visible: boolean = true
+    visible: boolean = true,
   ) {
     if (!this.#device) throw new Error("Renderer not initialized, or pipeline does not exist");
     const obj = this.#objects[id];
-    if (!obj) throw new Error(`Could not find object id:${id}`);
+    if (!obj) throw new Error(`Could not find pipeline id:${id}`);
     obj.visible = visible;
-
     // todo: model matrix
     const modelt: Mat4 = mat4.translation(vec3.create(translate[0], translate[1], 0));
     const modelr: Mat4 = mat4.axisRotation(vec3.create(0, 0, 1), rotate * Math.PI / 180);
@@ -169,13 +197,14 @@ class Renderer {
   }
   // render to canvas
   draw() {
-    if (!this.#device || !this.#context) 
+    if (!this.#device || !this.#context || !this.#msaa)
       throw new Error("Renderer not initialized, or pipeline does not exist");
     // create new command encoder (consumed at the end)
     const encoder: GPUCommandEncoder = this.#device.createCommandEncoder();
     const pass: GPURenderPassEncoder = encoder.beginRenderPass({
       colorAttachments: [{
-        view: this.#context.getCurrentTexture().createView(),
+        view: this.#msaa,
+        resolveTarget: this.#context.getCurrentTexture().createView(),
         clearValue: this.clearColor,
         loadOp: "clear",
         storeOp: "store",
@@ -183,21 +212,13 @@ class Renderer {
     });
     this.#objects.forEach(obj => {
       if (!obj.visible) return;
-      pass.setPipeline(obj.pipeline);
+      pass.setPipeline(this.#pipelines[obj.pipelineIndex]);
       pass.setVertexBuffer(0, obj.vertexBuffer);
       pass.setBindGroup(0, obj.bindGroup);
       pass.draw(obj.vertexCount);
     })
     pass.end();
     this.#device.queue.submit([encoder.finish()]);
-  }
-  // print list of objects for simple debugging
-  listObjects(): Array<{ id:number, name:string, visible:boolean }> {
-    let output: Array<{ id:number, name:string, visible:boolean }> = [];
-    this.#objects.forEach(obj => {
-      output.push({ id: obj.id, name: obj.name, visible: obj.visible });
-    })
-    return output;
   }
 };
 
@@ -229,4 +250,5 @@ function orthoProjMatrix(
   );
 }
 
+export default Renderer;
 export { Renderer, colorRGB };
