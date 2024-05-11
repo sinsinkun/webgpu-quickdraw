@@ -1,5 +1,4 @@
-import { Renderer, vec2 } from './renderer';
-import type { Vec2 } from './renderer';
+import { Renderer } from './renderer';
 import shader from './basic.wgsl?raw';
 
 // get HTML elements
@@ -18,14 +17,26 @@ function log(msg: string): void {
 try {
 
   log("Hello world");
+  // initialize renderer
   const renderer = new Renderer;
   if (canvas) await renderer.init(canvas);
+  // change background color
   renderer.updateClearRGB(30, 10, 60);
-  const verts: Array<Vec2> = [
-    vec2.create(120, 120),vec2.create(120, -120),vec2.create(-120, -120),
-    vec2.create(120, 120),vec2.create(-120, 120),vec2.create(-120, -120),
+  const size = 40;
+  // declare vertices to draw (in sets of tris)
+  const verts: Array<[number, number]> = [
+    [size, size], [size, -size], [-size, -size],
+    [size, size], [-size, size], [-size, -size],
+    [-size, size], [-size, -size], [-size-20, 0],
+    [size, size], [size, -size], [size+20, 0],
   ];
-  renderer.createPipeline2D(verts, shader);
+  renderer.addObject2D(0, "rect", verts, shader);
+  renderer.addObject2D(1, "rect2", verts, shader);
+  renderer.addObject2D(2, "rect2", verts, shader);
+  // update properties
+  renderer.updateObject2D(1, [150, 80], 30);
+  renderer.updateObject2D(2, [-150, -80], -20);
+  // render to canvas
   renderer.draw();
   log("Drew to canvas");
 

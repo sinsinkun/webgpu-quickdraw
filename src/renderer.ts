@@ -1,20 +1,15 @@
-import { mat4, vec2, Vec2, Vec4, Mat4, vec3 } from 'wgpu-matrix';
+import { mat4, vec3 } from 'wgpu-matrix';
+import type { Vec4, Mat4 } from 'wgpu-matrix';
 
 class Renderer {
   // private properties
   #device: GPUDevice | null = null;
   #format: GPUTextureFormat | null = null;
   #context: GPUCanvasContext | null = null;
+  #objects: Array<RenderObject> = [];
   // public properties
   frame: number = 0;
   clearColor: GPUColorDict = { r:0, g:0, b:0, a:1 };
-
-  // transient fields for rendering
-  #renderpipe: GPURenderPipeline | null = null;
-  #vertbuffer: GPUBuffer | null = null;
-  #vertcount: number = 0;
-  #bindgroup: GPUBindGroup | null = null;
-  #bindEntries: Array<GPUBuffer> = [];
 
   constructor() {}
   // initialize WebGPU connection
@@ -47,11 +42,11 @@ class Renderer {
     this.clearColor.a = a ? Math.floor(a)/255 : 1;
   }
   // create pipeline for rendering
-  createPipeline2D(verts: Array<Vec2>, shader: string) {
+  addObject2D(id:number, name:string = "(Unnamed)", verts: Array<[number, number]>, shader: string) {
     if (!this.#device || !this.#format) throw new Error("Renderer not initialized");
     // create vertex buffer
     const verts1d: Array<number> = [];
-    verts.forEach((v: Vec2) => verts1d.push(v[0], v[1]));
+    verts.forEach((v: [number, number]) => verts1d.push(v[0], v[1]));
     const vertices = new Float32Array(verts1d);
     const vertexBuffer: GPUBuffer = this.#device.createBuffer({
       label: "vertex-buffer",
@@ -133,31 +128,49 @@ class Renderer {
       ]
     });
     // save to cache
-    this.#renderpipe = pipeline;
-    this.#vertbuffer = vertexBuffer;
-    this.#vertcount = verts.length;
-    this.#bindgroup = bindGroup0;
-    this.#bindEntries.push(modelMatBuffer, viewMatBuffer, projMatBuffer);
+    const obj: RenderObject = {
+      id,
+      name,
+      visible: true,
+      pipeline,
+      vertexBuffer,
+      vertexCount: verts.length,
+      bindGroup: bindGroup0,
+      bindEntries: [modelMatBuffer, viewMatBuffer, projMatBuffer]
+    };
+    this.#objects.push(obj);
+    this.updateObject2D(this.#objects.length - 1);
+  }
+  // update buffers
+  updateObject2D(
+    id: number,
+    translate: [number, number] = [0, 0],
+    rotate: number = 0,
+    scale: number = 1,
+    visible: boolean = true
+  ) {
+    if (!this.#device) throw new Error("Renderer not initialized, or pipeline does not exist");
+    const obj = this.#objects[id];
+    if (!obj) throw new Error(`Could not find object id:${id}`);
+    obj.visible = visible;
+
+    // todo: model matrix
+    const modelt: Mat4 = mat4.translation(vec3.create(translate[0], translate[1], 0));
+    const modelr: Mat4 = mat4.axisRotation(vec3.create(0, 0, 1), rotate * Math.PI / 180);
+    const models: Mat4 = mat4.scaling(vec3.create(scale, scale, 1));
+    const model: Mat4 = mat4.multiply(modelt, mat4.multiply(modelr, models)) as Float32Array;
+    this.#device.queue.writeBuffer(obj.bindEntries[0], 0, model);
+    // todo: view matrix
+    const view: Mat4 = mat4.identity() as Float32Array;
+    this.#device.queue.writeBuffer(obj.bindEntries[1], 0, view);
+    // projection matrix
+    const proj: Mat4 = orthoProjMatrix(-256, 256, 256, -256) as Float32Array;
+    this.#device.queue.writeBuffer(obj.bindEntries[2], 0, proj);
   }
   // render to canvas
   draw() {
-    if (!this.#device || !this.#context || !this.#renderpipe) 
+    if (!this.#device || !this.#context) 
       throw new Error("Renderer not initialized, or pipeline does not exist");
-    // update buffers
-    if (this.#bindgroup) {
-      // todo: model matrix
-      const modelt = mat4.translation(vec3.create(0, 0, 0));
-      const modelr = mat4.axisRotation(vec3.create(0, 0, 1), 0);
-      const models = mat4.scaling(vec3.create(1, 1, 1));
-      const model = mat4.multiply(modelt, mat4.multiply(modelr, models)) as Float32Array;
-      this.#device.queue.writeBuffer(this.#bindEntries[0], 0, model);
-      // todo: view matrix
-      const view = mat4.identity() as Float32Array;
-      this.#device.queue.writeBuffer(this.#bindEntries[1], 0, view);
-      // projection matrix
-      const proj = orthoProjMatrix(-256, 256, 256, -256) as Float32Array;
-      this.#device.queue.writeBuffer(this.#bindEntries[2], 0, proj);
-    }
     // create new command encoder (consumed at the end)
     const encoder: GPUCommandEncoder = this.#device.createCommandEncoder();
     const pass: GPURenderPassEncoder = encoder.beginRenderPass({
@@ -168,12 +181,23 @@ class Renderer {
         storeOp: "store",
       }]
     });
-    pass.setPipeline(this.#renderpipe);
-    pass.setVertexBuffer(0, this.#vertbuffer);
-    if (this.#bindgroup) pass.setBindGroup(0, this.#bindgroup);
-    pass.draw(this.#vertcount);
+    this.#objects.forEach(obj => {
+      if (!obj.visible) return;
+      pass.setPipeline(obj.pipeline);
+      pass.setVertexBuffer(0, obj.vertexBuffer);
+      pass.setBindGroup(0, obj.bindGroup);
+      pass.draw(obj.vertexCount);
+    })
     pass.end();
     this.#device.queue.submit([encoder.finish()]);
+  }
+  // print list of objects for simple debugging
+  listObjects(): Array<{ id:number, name:string, visible:boolean }> {
+    let output: Array<{ id:number, name:string, visible:boolean }> = [];
+    this.#objects.forEach(obj => {
+      output.push({ id: obj.id, name: obj.name, visible: obj.visible });
+    })
+    return output;
   }
 };
 
@@ -205,5 +229,4 @@ function orthoProjMatrix(
   );
 }
 
-export { Renderer, colorRGB, vec2, mat4 };
-export type { Vec2, Vec4 };
+export { Renderer, colorRGB };
