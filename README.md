@@ -8,6 +8,8 @@ Custom renderer object implementation for simplifying working with WebGPU.
 - Implements mvp transforms for vertex shader
 - Implements uv coords for fragment shader
 
+<img src="public/screenshot.png" height="500px" />
+
 ### Dependencies
 
 wgpu-matrix: for matrix calculations involved in shader transformations
