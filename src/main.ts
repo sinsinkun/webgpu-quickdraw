@@ -14,60 +14,63 @@ function log(msg: string): void {
   if (scrollable) scrollable.scrollTo(0, scrollable.scrollHeight);
 }
 
-try {
-
-  log("Hello world");
-  // initialize renderer
-  const renderer = await Renderer.init(canvas);
-  // change background color
-  renderer.updateClearRGB(30, 10, 60);
-  const size = 40;
-  // create pipeline
-  const pipe1 = renderer.addPipeline2D(shader);
-  // declare vertices to draw (in sets of tris)
-  const verts: Array<[number, number]> = [
-    [size, size], [size, -size], [-size, -size],
-    [size, size], [-size, size], [-size, -size],
-    [-size, size], [-size, -size], [-size-20, 0],
-    [size, size], [size, -size], [size+20, 0],
-  ];
-  renderer.addObject2D(verts, pipe1);
-  const obj2 = renderer.addObject2D(verts, pipe1);
-  const obj3 = renderer.addObject2D(verts, pipe1);
-  // update properties
-  renderer.updateObject2D(obj2, [40, 0]);
-  renderer.updateObject2D(obj3, [-40, 0]);
-  // render to canvas
-  renderer.draw();
-  log("Drew to canvas");
-
-  // button event listeners
-  let rot: number = 0;
-  let intervalHolder: ReturnType<typeof setInterval> | null = null;
-  function update() {
+async function main() {
+  try {
+    log("Hello world");
+    // initialize renderer
+    const renderer = await Renderer.init(canvas);
+    // change background color
+    renderer.updateClearRGB(30, 10, 60);
+    const size = 40;
+    // create pipeline
+    const pipe1 = renderer.addPipeline2D(shader);
+    // declare vertices to draw (in sets of tris)
+    const verts: Array<[number, number]> = [
+      [size, size], [size, -size], [-size, -size],
+      [size, size], [-size, size], [-size, -size],
+      [-size, size], [-size, -size], [-size-20, 0],
+      [size, size], [size, -size], [size+20, 0],
+    ];
+    renderer.addObject2D(verts, pipe1);
+    const obj2 = renderer.addObject2D(verts, pipe1);
+    const obj3 = renderer.addObject2D(verts, pipe1);
     // update properties
-    rot += 2;
-    renderer.updateObject2D(obj2, [40, 0], rot, 1.2 + 0.2 * Math.sin(rot / 100));
-    renderer.updateObject2D(obj3, [-40, 0], -rot, 1.2 + 0.2 * Math.cos(rot / 100));
+    renderer.updateObject2D(obj2, [40, 0]);
+    renderer.updateObject2D(obj3, [-40, 0]);
     // render to canvas
     renderer.draw();
-  }
-  btn?.addEventListener("click", () => {
-    update();
     log("Drew to canvas");
-  });
-  btn2?.addEventListener("click", () => {
-    if (intervalHolder) {
-      log("Stop continuous drawing");
-      window.clearInterval(intervalHolder);
-      intervalHolder = null;
-      return;
+  
+    // button event listeners
+    let rot: number = 0;
+    let intervalHolder: ReturnType<typeof setInterval> | null = null;
+    function update() {
+      // update properties
+      rot += 2;
+      renderer.updateObject2D(obj2, [40, 0], rot, 1.2 + 0.2 * Math.sin(rot / 100));
+      renderer.updateObject2D(obj3, [-40, 0], -rot, 1.2 + 0.2 * Math.cos(rot / 100));
+      // render to canvas
+      renderer.draw();
     }
-    intervalHolder = window.setInterval(update, 15);
-    log("Drawing to canvas continuously");
-  });
-
-} catch (err) {
-  console.log(err);
-  log(`${err}`);
+    btn?.addEventListener("click", () => {
+      update();
+      log("Drew to canvas");
+    });
+    btn2?.addEventListener("click", () => {
+      if (intervalHolder) {
+        log("Stop continuous drawing");
+        window.clearInterval(intervalHolder);
+        intervalHolder = null;
+        return;
+      }
+      intervalHolder = window.setInterval(update, 15);
+      log("Drawing to canvas continuously");
+    });
+  
+  } catch (err) {
+    console.log(err);
+    log(`${err}`);
+  }
 }
+
+main();
