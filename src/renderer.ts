@@ -1,5 +1,4 @@
-import { mat4, vec3 } from 'wgpu-matrix';
-import type { Vec4, Mat4 } from 'wgpu-matrix';
+import { mat4, Mat4 } from 'wgpu-matrix';
 
 //#region Types
 // render object information
@@ -33,16 +32,20 @@ class Renderer {
   #format: GPUTextureFormat;
   #context: GPUCanvasContext;
   #msaa: GPUTextureView;
+  #width: number;
+  #height: number;
   // public properties
   pipelines: Array<GPURenderPipeline> = [];
   objects: Array<RenderObject> = [];
   clearColor: GPUColorDict = { r:0, g:0, b:0, a:1 };
 
-  constructor(d: GPUDevice, f: GPUTextureFormat, c: GPUCanvasContext, m: GPUTextureView) {
+  constructor(d: GPUDevice, f: GPUTextureFormat, c: GPUCanvasContext, m: GPUTextureView, w: number, h: number) {
     this.#device = d;
     this.#format = f;
     this.#context = c;
     this.#msaa = m;
+    this.#width = w;
+    this.#height = h;
   }
   // initialize WebGPU connection
   static async init(canvas: HTMLCanvasElement | null): Promise<Renderer> {
@@ -62,7 +65,7 @@ class Renderer {
     context.configure({ device, format, alphaMode: 'premultiplied' });
 
     // create texture for MSAA antialiasing
-    const MsaaTexture = device.createTexture({
+    const msaaTexture = device.createTexture({
       size: [canvas.width, canvas.height],
       sampleCount: 4,
       format: format,
@@ -74,7 +77,9 @@ class Renderer {
       device,
       format,
       context,
-      MsaaTexture.createView()
+      msaaTexture.createView(),
+      canvas.width,
+      canvas.height,
     );
   }
   // change clear color
@@ -192,28 +197,24 @@ class Renderer {
     return this.objects.length - 1;
   }
   // update buffers
-  updateObject2D(
-    id: number,
-    translate: [number, number] = [0, 0],
-    rotate: number = 0,
-    scale: number = 1,
-    visible: boolean = true,
-  ) {
+  updateObject2D(id: number, translate: [number,number]=[0,0], rotate: number=0, scale: number=1, visible: boolean=true) {
     if (!this.#device) throw new Error("Renderer not initialized");
     const obj = this.objects[id];
     if (!obj) throw new Error(`Could not find pipeline id:${id}`);
     obj.visible = visible;
-    // todo: model matrix
-    const modelt: Mat4 = mat4.translation(vec3.create(translate[0], translate[1], 0));
-    const modelr: Mat4 = mat4.axisRotation(vec3.create(0, 0, 1), rotate * Math.PI / 180);
-    const models: Mat4 = mat4.scaling(vec3.create(scale, scale, 1));
-    const model: Mat4 = mat4.multiply(modelt, mat4.multiply(modelr, models)) as Float32Array;
-    this.#device.queue.writeBuffer(obj.bindEntries[0], 0, model);
-    // todo: view matrix
-    const view: Mat4 = mat4.identity() as Float32Array;
-    this.#device.queue.writeBuffer(obj.bindEntries[1], 0, view);
+    // model matrix
+    const modelt: Mat4 = mat4.translation(vec3(translate[0], translate[1], 0));
+    const modelr: Mat4 = mat4.axisRotation(vec3(0, 0, 1), rotate * Math.PI / 180);
+    const models: Mat4 = mat4.scaling(vec3(scale, scale, 1));
+    const model: Mat4 = mat4.multiply(modelt, mat4.multiply(modelr, models));
+    this.#device.queue.writeBuffer(obj.bindEntries[0], 0, model as Float32Array);
+    // view matrix
+    const view: Mat4 = mat4.identity();
+    this.#device.queue.writeBuffer(obj.bindEntries[1], 0, view as Float32Array);
     // projection matrix
-    const proj: Mat4 = orthoProjMatrix(-256, 256, 256, -256) as Float32Array;
+    const w2 = this.#width/2;
+    const h2 = this.#height/2;
+    const proj: Float32Array = orthoProjMatrix(-w2, w2, h2, -h2);
     this.#device.queue.writeBuffer(obj.bindEntries[2], 0, proj);
   }
   // render to canvas
@@ -244,8 +245,12 @@ class Renderer {
 //#endregion Renderer Class
 
 //#region Util functions
+// create 3d vector
+function vec3(x: number, y: number, z: number): Float32Array {
+  return new Float32Array([x, y, z]);
+}
 // convert color to float range
-function colorRGB(r: number, g: number, b: number, a?: number): Vec4 {
+function colorRGB(r: number, g: number, b: number, a?: number): Float32Array {
   const color = new Float32Array(4);
   color[0] = r ? Math.floor(r)/255 : 0;
   color[1] = g ? Math.floor(g)/255 : 0;
@@ -253,25 +258,17 @@ function colorRGB(r: number, g: number, b: number, a?: number): Vec4 {
   color[3] = a ? Math.floor(a)/255 : 1;
   return color;
 }
-
 // create orthographic projection matrix
-function orthoProjMatrix(
-  left: number,
-  right: number,
-  top: number,
-  bottom: number,
-  near: number = 0.0001,
-  far: number = 1000
-): Mat4 {
-  return mat4.create(
+function orthoProjMatrix(left: number, right: number, top: number, bottom: number, near: number=0.01, far: number=1000): Float32Array {
+  const mat4 = new Float32Array([
     (2/(right-left)), 0, 0, -(right+left)/(right-left),
     0, (2/(top-bottom)), 0, -(top+bottom)/(top-bottom),
     0, 0, (-2/(far-near)), -(far+near)/(far-near),
     0, 0, 0, 1
-  );
+  ]);
+  return mat4;
 }
 //#endregion Util functions
-
 
 export default Renderer;
 export { Renderer, colorRGB };
