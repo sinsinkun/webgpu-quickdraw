@@ -15,6 +15,22 @@
     <div class="container">
       <canvas id="canvas" width="512" height="512"></canvas>
       <div class="panel">
+        <h2>Description</h2>
+        <p>
+          This is a simple sandbox for testing my custom WebGPU library.
+          It dramatically simplifies the steps required to setup a basic
+          render pipeline using WebGPU, and configuring render objects to 
+          draw onto the canvas. MVP transforms are pre-built, and easily
+          modified by calling a function to update the render objects'
+          position, rotation, and scale.
+        </p>
+        <br />
+        <p>
+          Note: WebGPU is not supported on Safari browsers as of this writing, 
+          and needs to be explicitly enabled on firefox. Please refer to the 
+          logs below for details.
+        </p>
+        <br />
         <button id="btn-frame+">Frame+</button>
         <button id="btn-auto">Auto</button>
         <div class="log-container" id="log-scroll">

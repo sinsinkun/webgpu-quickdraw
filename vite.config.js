@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: 'vite-webgpu',
+  base: '/vite-webgpu',
   build: {
     outDir: 'build',
   },
