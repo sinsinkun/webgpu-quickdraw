@@ -35,8 +35,8 @@ try {
   const obj2 = renderer.addObject2D(verts, pipe1);
   const obj3 = renderer.addObject2D(verts, pipe1);
   // update properties
-  renderer.updateObject2D(obj2, [150, 0]);
-  renderer.updateObject2D(obj3, [-150, 0]);
+  renderer.updateObject2D(obj2, [40, 0]);
+  renderer.updateObject2D(obj3, [-40, 0]);
   // render to canvas
   renderer.draw();
   log("Drew to canvas");
@@ -47,8 +47,8 @@ try {
   function update() {
     // update properties
     rot += 2;
-    renderer.updateObject2D(obj2, [150, 0], rot);
-    renderer.updateObject2D(obj3, [-150, 0], -rot);
+    renderer.updateObject2D(obj2, [40, 0], rot, 1.2 + 0.2 * Math.sin(rot / 100));
+    renderer.updateObject2D(obj3, [-40, 0], -rot, 1.2 + 0.2 * Math.cos(rot / 100));
     // render to canvas
     renderer.draw();
   }
@@ -63,7 +63,7 @@ try {
       intervalHolder = null;
       return;
     }
-    intervalHolder = window.setInterval(update, 20);
+    intervalHolder = window.setInterval(update, 15);
     log("Drawing to canvas continuously");
   });
 

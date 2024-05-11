@@ -89,6 +89,7 @@ class Renderer {
     this.clearColor.b = b ? Math.floor(b)/255 : 0;
     this.clearColor.a = a ? Math.floor(a)/255 : 1;
   }
+  // create pipeline for rendering
   addPipeline2D(shader:string): number {
     if (!this.#device) throw new Error("Renderer not initialized");
     // define layout
@@ -97,7 +98,7 @@ class Renderer {
       attributes: [{ format: "float32x2", offset: 0, shaderLocation: 0 }]
     }
     const shaderModule: GPUShaderModule = this.#device.createShaderModule({
-      label: "vertex-shader-module",
+      label: "shader-module",
       code: shader
     });
     // define uniform layout
@@ -117,12 +118,26 @@ class Renderer {
           binding: 2,
           visibility: GPUShaderStage.VERTEX,
           buffer: {}
+        },
+        {
+          binding: 3,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          buffer: {}
+        },
+        {
+          binding: 4,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          buffer: {}
         }
       ]
     });
     const pipelineLayout: GPUPipelineLayout = this.#device.createPipelineLayout({
       bindGroupLayouts: [bindGroupLayout]
     });
+    const blendMode: GPUBlendComponent = {
+      srcFactor: 'src-alpha',
+      dstFactor: 'one-minus-src-alpha',
+    };
     const pipeline: GPURenderPipeline = this.#device.createRenderPipeline({
       label: "vertex-pipeline",
       layout: pipelineLayout,
@@ -134,7 +149,7 @@ class Renderer {
       fragment: {
         module: shaderModule,
         entryPoint: "fragmentMain",
-        targets: [{ format: this.#format }]
+        targets: [{ format: this.#format, blend: {color: blendMode, alpha: blendMode} }]
       },
       multisample: {
         count: 4,
@@ -143,12 +158,23 @@ class Renderer {
     this.pipelines.push(pipeline);
     return (this.pipelines.length - 1);
   }
-  // create pipeline for rendering
+  // create buffers for render object
   addObject2D(verts: Array<[number, number]>, pipelineIndex: number): number {
     if (!this.#device) throw new Error("Renderer not initialized");
+    if (verts.length < 3) throw new Error("Not enough vertices");
     // create vertex buffer
     const verts1d: Array<number> = [];
-    verts.forEach((v: [number, number]) => verts1d.push(v[0], v[1]));
+    let xmin: number = verts[0][0];
+    let xmax: number = verts[0][0];
+    let ymin: number = verts[0][1];
+    let ymax: number = verts[0][1];
+    verts.forEach((v: [number, number]) => {
+      verts1d.push(v[0], v[1]);
+      if (v[0] < xmin) xmin = v[0];
+      if (v[0] > xmax) xmax = v[0];
+      if (v[1] < ymin) ymin = v[1];
+      if (v[1] > ymax) ymax = v[1];
+    });
     const vertices = new Float32Array(verts1d);
     const vertexBuffer: GPUBuffer = this.#device.createBuffer({
       label: "vertex-buffer",
@@ -173,6 +199,16 @@ class Renderer {
       size: mat4Size,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
+    const uvSizeBuffer: GPUBuffer = this.#device.createBuffer({
+      label: "uv-size-uniform",
+      size: 8, // 2 32bit floats
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
+    const colorBuffer: GPUBuffer = this.#device.createBuffer({
+      label: "color-uniform",
+      size: 16, // 4 32bit floats
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
     // create bind group
     const bindGroup0: GPUBindGroup = this.#device.createBindGroup({
       label: "bind-group-0",
@@ -181,8 +217,15 @@ class Renderer {
         {binding: 0, resource: { buffer: modelMatBuffer }},
         {binding: 1, resource: { buffer: viewMatBuffer }},
         {binding: 2, resource: { buffer: projMatBuffer }},
+        {binding: 3, resource: { buffer: uvSizeBuffer }},
+        {binding: 4, resource: { buffer: colorBuffer }},
       ]
     });
+    // pre-set buffers
+    const uvSize: Float32Array = new Float32Array([xmax - xmin, ymax - ymin]);
+    this.#device.queue.writeBuffer(uvSizeBuffer, 0, uvSize);
+    const color: Float32Array = colorRGB(255, 255, 255, 255);
+    this.#device.queue.writeBuffer(colorBuffer, 0, color);
     // save to cache
     const obj: RenderObject = {
       visible: true,
@@ -190,7 +233,7 @@ class Renderer {
       vertexCount: verts.length,
       pipelineIndex: pipelineIndex,
       bindGroup: bindGroup0,
-      bindEntries: [modelMatBuffer, viewMatBuffer, projMatBuffer],
+      bindEntries: [modelMatBuffer, viewMatBuffer, projMatBuffer, uvSizeBuffer, colorBuffer],
     };
     this.objects.push(obj);
     this.updateObject2D(this.objects.length - 1);
@@ -214,7 +257,7 @@ class Renderer {
     // projection matrix
     const w2 = this.#width/2;
     const h2 = this.#height/2;
-    const proj: Float32Array = orthoProjMatrix(-w2, w2, h2, -h2);
+    const proj: Float32Array = orthoProjMatrix(-w2, w2, -h2, h2);
     this.#device.queue.writeBuffer(obj.bindEntries[2], 0, proj);
   }
   // render to canvas
