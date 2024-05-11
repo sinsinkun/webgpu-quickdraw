@@ -1,6 +1,7 @@
 import { mat4, vec3 } from 'wgpu-matrix';
 import type { Vec4, Mat4 } from 'wgpu-matrix';
 
+// ---- TYPE DEFINITIONS ----
 // render object information
 interface RenderObject {
   visible: boolean,
@@ -11,6 +12,7 @@ interface RenderObject {
   bindEntries: Array<GPUBuffer>,
 }
 
+// ---- MAIN BODY ----
 // main renderer interface
 class Renderer {
   // private properties
