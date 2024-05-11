@@ -18,8 +18,7 @@ try {
 
   log("Hello world");
   // initialize renderer
-  const renderer = new Renderer;
-  if (canvas) await renderer.init(canvas);
+  const renderer = await Renderer.init(canvas);
   // change background color
   renderer.updateClearRGB(30, 10, 60);
   const size = 40;

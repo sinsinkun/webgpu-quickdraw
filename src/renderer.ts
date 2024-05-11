@@ -13,25 +13,40 @@ interface RenderObject {
 }
 //#endregion Types
 
-
 //#region Renderer Class
-// main renderer interface
+/**
+ * ## Renderer
+ * Primary object for storing all render data and 
+ * reducing WebGPU API calls to simple js functions.
+ * 
+ * ### Usage:
+ * ```js
+ * const renderer = await Renderer.init(canvas);
+ * const pipe1 = renderer.addPipeline2D(shader);
+ * const obj1 = renderer.addObject2D(vertices);
+ * renderer.draw();
+ * ```
+ */
 class Renderer {
   // private properties
-  #device: GPUDevice | null = null;
-  #format: GPUTextureFormat | null = null;
-  #context: GPUCanvasContext | null = null;
-  #msaa: GPUTextureView | null = null;
-  #pipelines: Array<GPURenderPipeline> = [];
-  #objects: Array<RenderObject> = [];
+  #device: GPUDevice;
+  #format: GPUTextureFormat;
+  #context: GPUCanvasContext;
+  #msaa: GPUTextureView;
   // public properties
-  frame: number = 0;
+  pipelines: Array<GPURenderPipeline> = [];
+  objects: Array<RenderObject> = [];
   clearColor: GPUColorDict = { r:0, g:0, b:0, a:1 };
 
-  constructor() {}
+  constructor(d: GPUDevice, f: GPUTextureFormat, c: GPUCanvasContext, m: GPUTextureView) {
+    this.#device = d;
+    this.#format = f;
+    this.#context = c;
+    this.#msaa = m;
+  }
   // initialize WebGPU connection
-  async init(canvas: HTMLCanvasElement): Promise<void> {
-    if (this.#device) return console.warn("Already initialized renderer");
+  static async init(canvas: HTMLCanvasElement | null): Promise<Renderer> {
+    if (!canvas) throw new Error("No canvas provided");
     // test webgpu compatibility
     if (!navigator.gpu) throw new Error("WebGPU not supported on this browser");
 
@@ -55,10 +70,12 @@ class Renderer {
     });
 
     // retain initialized components
-    this.#device = device;
-    this.#context = context;
-    this.#format = format;
-    this.#msaa = MsaaTexture.createView();
+    return new Renderer(
+      device,
+      format,
+      context,
+      MsaaTexture.createView()
+    );
   }
   // change clear color
   updateClearRGB(r: number, g: number, b: number, a?: number) {
@@ -68,7 +85,7 @@ class Renderer {
     this.clearColor.a = a ? Math.floor(a)/255 : 1;
   }
   addPipeline2D(shader:string): number {
-    if (!this.#device || !this.#format) throw new Error("Renderer not initialized");
+    if (!this.#device) throw new Error("Renderer not initialized");
     // define layout
     const vbLayout: GPUVertexBufferLayout = {
       arrayStride: 8,
@@ -118,8 +135,8 @@ class Renderer {
         count: 4,
       }
     });
-    this.#pipelines.push(pipeline);
-    return (this.#pipelines.length - 1);
+    this.pipelines.push(pipeline);
+    return (this.pipelines.length - 1);
   }
   // create pipeline for rendering
   addObject2D(verts: Array<[number, number]>, pipelineIndex: number): number {
@@ -154,7 +171,7 @@ class Renderer {
     // create bind group
     const bindGroup0: GPUBindGroup = this.#device.createBindGroup({
       label: "bind-group-0",
-      layout: this.#pipelines[pipelineIndex].getBindGroupLayout(0),
+      layout: this.pipelines[pipelineIndex].getBindGroupLayout(0),
       entries: [
         {binding: 0, resource: { buffer: modelMatBuffer }},
         {binding: 1, resource: { buffer: viewMatBuffer }},
@@ -170,9 +187,9 @@ class Renderer {
       bindGroup: bindGroup0,
       bindEntries: [modelMatBuffer, viewMatBuffer, projMatBuffer],
     };
-    this.#objects.push(obj);
-    this.updateObject2D(this.#objects.length - 1);
-    return this.#objects.length - 1;
+    this.objects.push(obj);
+    this.updateObject2D(this.objects.length - 1);
+    return this.objects.length - 1;
   }
   // update buffers
   updateObject2D(
@@ -182,8 +199,8 @@ class Renderer {
     scale: number = 1,
     visible: boolean = true,
   ) {
-    if (!this.#device) throw new Error("Renderer not initialized, or pipeline does not exist");
-    const obj = this.#objects[id];
+    if (!this.#device) throw new Error("Renderer not initialized");
+    const obj = this.objects[id];
     if (!obj) throw new Error(`Could not find pipeline id:${id}`);
     obj.visible = visible;
     // todo: model matrix
@@ -201,8 +218,7 @@ class Renderer {
   }
   // render to canvas
   draw() {
-    if (!this.#device || !this.#context || !this.#msaa)
-      throw new Error("Renderer not initialized, or pipeline does not exist");
+    if (!this.#device) throw new Error("Renderer not initialized");
     // create new command encoder (consumed at the end)
     const encoder: GPUCommandEncoder = this.#device.createCommandEncoder();
     const pass: GPURenderPassEncoder = encoder.beginRenderPass({
@@ -214,9 +230,9 @@ class Renderer {
         storeOp: "store",
       }]
     });
-    this.#objects.forEach(obj => {
+    this.objects.forEach(obj => {
       if (!obj.visible) return;
-      pass.setPipeline(this.#pipelines[obj.pipelineIndex]);
+      pass.setPipeline(this.pipelines[obj.pipelineIndex]);
       pass.setVertexBuffer(0, obj.vertexBuffer);
       pass.setBindGroup(0, obj.bindGroup);
       pass.draw(obj.vertexCount);
@@ -226,7 +242,6 @@ class Renderer {
   }
 };
 //#endregion Renderer Class
-
 
 //#region Util functions
 // convert color to float range
