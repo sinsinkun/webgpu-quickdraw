@@ -8,9 +8,10 @@ Custom renderer object implementation for simplifying working with WebGPU.
 - Implements support for alpha channel transparency
 - Implements multi-sampled anti-aliasing (4x)
 - Implements mvp transforms for vertex shader
-- Implements uv coords for fragment shader
+- Implements uv buffer for VBO
+- Implements normal buffer for VBO
 
-<img src="public/screenshot.png" height="500px" />
+<img src="public/screenshot.png" width="600px" />
 
 ### Acknowledgements
 

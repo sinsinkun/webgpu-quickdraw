@@ -21,7 +21,7 @@ async function main() {
     // initialize renderer
     const renderer = await Renderer.init(canvas);
     // change background color
-    renderer.updateClearRGB(30, 10, 60);
+    renderer.updateClearRGB(80, 100, 160);
     const size = 40;
     // create pipeline
     const pipe1 = renderer.addPipeline(shader);
@@ -36,8 +36,8 @@ async function main() {
     const uvs: Array<[number, number]> = [
       [0, 0], [0, 1], [1, 1],
       [0, 0], [1, 0], [1, 1],
-      [1, 0], [0, 1], [0, 0],
-      [0, 1], [1, 0], [0, 0],
+      [1, 0], [1, 1], [0, 0],
+      [0, 0], [0, 1], [1, 1],
     ]
     const obj1 = renderer.addObject2D(pipe1, verts, uvs);
     const obj2 = renderer.addObject2D(pipe1, verts, uvs);
@@ -57,8 +57,8 @@ async function main() {
       rot += 2;
       const s1 = 1.2 + 0.2 * Math.sin(rot / 100);
       const s2 = 1.2 + 0.2 * Math.cos(rot / 100);
-      renderer.updateObject2D(obj2, [40, 0, 0], [0, 0, 1], rot, [s1, s2, 1]);
-      renderer.updateObject2D(obj3, [-40, 0, 0], [0, 0, 1], -rot, [s2, s1, 1]);
+      renderer.updateObject2D(obj2, [40, 0, 0], [0, 0, 1], rot, [s1, s1, 1]);
+      renderer.updateObject2D(obj3, [-40, 0, 0], [0, 0, 1], -rot, [s2, s2, 1]);
       // render to canvas
       renderer.draw();
     }
