@@ -10,6 +10,6 @@ Custom renderer object implementation for simplifying working with WebGPU.
 
 <img src="public/screenshot.png" height="500px" />
 
-### Dependencies
+### Acknowledgements
 
-wgpu-matrix: for matrix calculations involved in shader transformations
+Copied some matrix functions from [wgpu-matrix](https://github.com/greggman/wgpu-matrix) to reduce dependencies
