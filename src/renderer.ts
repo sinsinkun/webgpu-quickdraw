@@ -187,7 +187,7 @@ class Renderer {
     verts: Array<[number, number, number]>,
     uvs?: Array<[number, number]>,
     normals?: Array<[number, number, number]>,
-    objColor?: Float32Array,
+    objColor?: [number, number, number, number],
   ): number {
     if (!this.#device) throw new Error("Renderer not initialized");
     if (verts.length < 3) throw new Error("Not enough vertices");
@@ -268,7 +268,8 @@ class Renderer {
       ]
     });
     // pre-set buffers
-    const color: Float32Array = objColor || Vec.colorRGB(255, 255, 255, 255);
+    let cv: Array<number> = objColor ? objColor : [255, 255, 255, 255];
+    const color: Float32Array = Vec.colorRGB(cv[0], cv[1], cv[2], cv[3]);
     this.#device.queue.writeBuffer(colorBuffer, 0, color);
     // save to cache
     const obj: RenderObject = {
