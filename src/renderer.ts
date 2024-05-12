@@ -3,6 +3,8 @@
 interface RenderObject {
   visible: boolean,
   vertexBuffer: GPUBuffer,
+  uvBuffer: GPUBuffer,
+  normalBuffer: GPUBuffer,
   vertexCount: number,
   pipelineIndex: number,
   bindGroup: GPUBindGroup,
@@ -107,13 +109,9 @@ class Renderer {
     this.camera2DPos[1] = y;
   }
   // create pipeline for rendering
-  addPipeline2D(shader:string): number {
+  addPipeline(shader:string): number {
     if (!this.#device) throw new Error("Renderer not initialized");
-    // define layout
-    const vbLayout: GPUVertexBufferLayout = {
-      arrayStride: 8,
-      attributes: [{ format: "float32x2", offset: 0, shaderLocation: 0 }]
-    }
+    // TODO index layout
     const shaderModule: GPUShaderModule = this.#device.createShaderModule({
       label: "shader-module",
       code: shader
@@ -121,28 +119,23 @@ class Renderer {
     // define uniform layout
     const bindGroupLayout: GPUBindGroupLayout = this.#device.createBindGroupLayout({
       entries: [
-        {
+        { // model matrix
           binding: 0,
           visibility: GPUShaderStage.VERTEX,
           buffer: {}
         },
-        {
+        { // view matrix
           binding: 1,
           visibility: GPUShaderStage.VERTEX,
           buffer: {}
         },
-        {
+        { // projection matrix
           binding: 2,
           visibility: GPUShaderStage.VERTEX,
           buffer: {}
         },
-        {
+        { // color
           binding: 3,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          buffer: {}
-        },
-        {
-          binding: 4,
           visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
           buffer: {}
         }
@@ -161,7 +154,20 @@ class Renderer {
       vertex: {
         module: shaderModule,
         entryPoint: "vertexMain",
-        buffers: [vbLayout]
+        buffers: [
+          { // position
+            arrayStride: 12,
+            attributes: [{ shaderLocation: 0, format: "float32x3", offset: 0 }]
+          },
+          { // uv coords
+            arrayStride: 8,
+            attributes: [{ shaderLocation: 1, format: "float32x2", offset: 0 }]
+          },
+          { // normal
+            arrayStride: 12,
+            attributes: [{ shaderLocation: 2, format: "float32x3", offset: 0 }]
+          },
+        ]
       },
       fragment: {
         module: shaderModule,
@@ -176,29 +182,58 @@ class Renderer {
     return (this.pipelines.length - 1);
   }
   // create buffers for render object
-  addObject2D(verts: Array<[number, number]>, pipelineIndex: number): number {
+  addObject2D(
+    pipelineIndex: number,
+    verts: Array<[number, number, number]>,
+    uvs?: Array<[number, number]>,
+    normals?: Array<[number, number, number]>,
+    objColor?: Float32Array,
+  ): number {
     if (!this.#device) throw new Error("Renderer not initialized");
     if (verts.length < 3) throw new Error("Not enough vertices");
     // create vertex buffer
-    const verts1d: Array<number> = [];
-    let xmin: number = verts[0][0];
-    let xmax: number = verts[0][0];
-    let ymin: number = verts[0][1];
-    let ymax: number = verts[0][1];
-    verts.forEach((v: [number, number]) => {
-      verts1d.push(v[0], v[1]);
-      if (v[0] < xmin) xmin = v[0];
-      if (v[0] > xmax) xmax = v[0];
-      if (v[1] < ymin) ymin = v[1];
-      if (v[1] > ymax) ymax = v[1];
-    });
-    const vertices = new Float32Array(verts1d);
+    let vlen = verts.length;
+    const vertices = new Float32Array(vlen * 3);
+    for (let i=0; i<verts.length; i++) {
+      vertices[i*3] = verts[i][0];
+      vertices[i*3+1] = verts[i][1];
+      vertices[i*3+2] = verts[i][2];
+    }
     const vertexBuffer: GPUBuffer = this.#device.createBuffer({
       label: "vertex-buffer",
       size: vertices.byteLength,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
     this.#device.queue.writeBuffer(vertexBuffer, 0, vertices);
+    // create uv buffer
+    const uvMap = new Float32Array(vlen * 2);
+    if (uvs && uvs.length > 0) {
+      for (let i=0; i<uvs.length; i++) {
+        uvMap[i*2] = uvs[i][0];
+        uvMap[i*2+1] = uvs[i][1];
+      }
+    }
+    const uvBuffer: GPUBuffer = this.#device.createBuffer({
+      label: "uv-buffer",
+      size: uvMap.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    this.#device.queue.writeBuffer(uvBuffer, 0, uvMap);
+    // create normals buffer
+    const normalMap = new Float32Array(vlen * 3);
+    if (normals && normals.length > 0) {
+      for (let i=0; i<normals.length; i++) {
+        normalMap[i*3] = normals[i][0];
+        normalMap[i*3+1] = normals[i][1];
+        normalMap[i*3+2] = normals[i][2];
+      }
+    }
+    const normalBuffer: GPUBuffer = this.#device.createBuffer({
+      label: "normal-buffer",
+      size: normalMap.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    this.#device.queue.writeBuffer(normalBuffer, 0, normalMap);
     // create uniform buffers
     const mat4Size: number = 4 * 4 * 4; // mat4 32bit/4byte floats
     const modelMatBuffer: GPUBuffer = this.#device.createBuffer({
@@ -216,11 +251,6 @@ class Renderer {
       size: mat4Size,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
-    const uvSizeBuffer: GPUBuffer = this.#device.createBuffer({
-      label: "uv-size-uniform",
-      size: 8, // 2 32bit floats
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
     const colorBuffer: GPUBuffer = this.#device.createBuffer({
       label: "color-uniform",
       size: 16, // 4 32bit floats
@@ -234,23 +264,22 @@ class Renderer {
         {binding: 0, resource: { buffer: modelMatBuffer }},
         {binding: 1, resource: { buffer: viewMatBuffer }},
         {binding: 2, resource: { buffer: projMatBuffer }},
-        {binding: 3, resource: { buffer: uvSizeBuffer }},
-        {binding: 4, resource: { buffer: colorBuffer }},
+        {binding: 3, resource: { buffer: colorBuffer }},
       ]
     });
     // pre-set buffers
-    const uvSize: Float32Array = new Float32Array([xmax - xmin, ymax - ymin]);
-    this.#device.queue.writeBuffer(uvSizeBuffer, 0, uvSize);
-    const color: Float32Array = colorRGB(255, 255, 255, 255);
+    const color: Float32Array = objColor || Vec.colorRGB(255, 255, 255, 255);
     this.#device.queue.writeBuffer(colorBuffer, 0, color);
     // save to cache
     const obj: RenderObject = {
       visible: true,
       vertexBuffer,
-      vertexCount: verts.length,
+      uvBuffer,
+      normalBuffer,
+      vertexCount: vlen,
       pipelineIndex: pipelineIndex,
       bindGroup: bindGroup0,
-      bindEntries: [modelMatBuffer, viewMatBuffer, projMatBuffer, uvSizeBuffer, colorBuffer],
+      bindEntries: [modelMatBuffer, viewMatBuffer, projMatBuffer, colorBuffer],
     };
     this.objects.push(obj);
     this.updateObject2D(this.objects.length - 1);
@@ -259,9 +288,10 @@ class Renderer {
   // update buffers for render object
   updateObject2D(
     id: number,
-    translate: [number,number] = [0,0],
-    rotate: number = 0,
-    scale: number = 1,
+    translate: [number, number, number] = [0, 0, 0],
+    rotateAxis: [number, number, number] = [0, 0, 1],
+    rotateDeg: number = 0,
+    scale: [number, number, number] = [1, 1, 1],
     visible: boolean = true
   ) {
     if (!this.#device) throw new Error("Renderer not initialized");
@@ -269,9 +299,9 @@ class Renderer {
     if (!obj) throw new Error(`Could not find pipeline id:${id}`);
     obj.visible = visible;
     // model matrix
-    const modelt: Float32Array = Mat4.translate(translate[0], translate[1], 0);
-    const modelr: Float32Array = Mat4.rotate([0, 0, 1], rotate * Math.PI / 180);
-    const models: Float32Array = Mat4.scale(scale, scale, 1);
+    const modelt: Float32Array = Mat4.translate(translate[0], translate[1], translate[2]);
+    const modelr: Float32Array = Mat4.rotate(rotateAxis, rotateDeg * Math.PI / 180);
+    const models: Float32Array = Mat4.scale(scale[0], scale[1], scale[2]);
     const model: Float32Array = Mat4.multiply(modelt, Mat4.multiply(modelr, models));
     this.#device.queue.writeBuffer(obj.bindEntries[0], 0, model);
     // view matrix
@@ -301,6 +331,8 @@ class Renderer {
       if (!obj.visible) return;
       pass.setPipeline(this.pipelines[obj.pipelineIndex]);
       pass.setVertexBuffer(0, obj.vertexBuffer);
+      pass.setVertexBuffer(1, obj.uvBuffer);
+      pass.setVertexBuffer(2, obj.normalBuffer);
       pass.setBindGroup(0, obj.bindGroup);
       pass.draw(obj.vertexCount);
     })
@@ -479,19 +511,114 @@ class Mat4 {
     return dst;
   }
 }
-//#endregion
+//#endregion Matrix 4x4
 
-//#region Util functions
-// convert color to float range
-function colorRGB(r: number, g: number, b: number, a?: number): Float32Array {
-  const color = new Float32Array(4);
-  color[0] = r ? Math.floor(r)/255 : 0;
-  color[1] = g ? Math.floor(g)/255 : 0;
-  color[2] = b ? Math.floor(b)/255 : 0;
-  color[3] = a ? Math.floor(a)/255 : 1;
-  return color;
+//#region Vector
+/**
+ * Container for util functions for vector math
+ */
+class Vec {
+  static uint(x: number, y: number, z?: number, w?: number): Uint32Array {
+    let size = 2;
+    if (typeof z === 'number') size = 3;
+    if (typeof w === 'number') size = 4;
+    const dst = new Uint32Array(size);
+    dst[0] = Math.round(x);
+    dst[1] = Math.round(y);
+    if (typeof z === 'number') dst[2] = Math.round(z);
+    if (typeof w === 'number') dst[3] = Math.round(w);
+    return dst;
+  }
+  static int(x: number, y: number, z?: number, w?: number): Int32Array {
+    let size = 2;
+    if (typeof z === 'number') size = 3;
+    if (typeof w === 'number') size = 4;
+    const dst = new Int32Array(size);
+    dst[0] = Math.round(x);
+    dst[1] = Math.round(y);
+    if (typeof z === 'number') dst[2] = Math.round(z);
+    if (typeof w === 'number') dst[3] = Math.round(w);
+    return dst;
+  }
+  static float(x: number, y: number, z?: number, w?: number): Float32Array {
+    let size = 2;
+    if (typeof z === 'number') size = 3;
+    if (typeof w === 'number') size = 4;
+    const dst = new Float32Array(size);
+    dst[0] = x;
+    dst[1] = y;
+    if (typeof z === 'number') dst[2] = z;
+    if (typeof w === 'number') dst[3] = w;
+    return dst;
+  }
+  static colorRGB(r: number, g: number, b: number, a?: number): Float32Array {
+    const color = new Float32Array(4);
+    color[0] = r ? Math.floor(r)/255 : 0;
+    color[1] = g ? Math.floor(g)/255 : 0;
+    color[2] = b ? Math.floor(b)/255 : 0;
+    color[3] = a ? Math.floor(a)/255 : 1;
+    return color;
+  }
+  static add(v1: Float32Array, v2: Float32Array): Float32Array {
+    let size1 = v1.length;
+    let size2 = v2.length;
+    let size3 = size1 > size2 ? size1 : size2;
+    const dst = new Float32Array(size3);
+    dst[0] = v1[0] + v2[0];
+    dst[1] = v1[1] + v1[1];
+    if (size3 > 2 && size1 > 2) dst[2] = v1[2];
+    if (size2 > 2) dst[2] += v2[2];
+    if (size3 > 3 && size1 > 3) dst[3] = v1[3];
+    if (size2 > 3) dst[3] += v2[3];
+    return dst; 
+  }
+  static subtract(v1: Float32Array, v2: Float32Array): Float32Array {
+    let size1 = v1.length;
+    let size2 = v2.length;
+    let size3 = size1 > size2 ? size1 : size2;
+    const dst = new Float32Array(size3);
+    dst[0] = v1[0] - v2[0];
+    dst[1] = v1[1] - v2[1];
+    if (size3 > 2 && size1 > 2) dst[2] = v1[2];
+    if (size2 > 2) dst[2] -= v2[2];
+    if (size3 > 3 && size1 > 3) dst[3] = v1[3];
+    if (size2 > 3) dst[3] -= v2[3];
+    return dst; 
+  }
+  static dot(v1: Float32Array, v2: Float32Array): number {
+    if (v1.length !== v2.length) throw new Error("Vector sizes don't match");
+    let out = 0, size = v1.length;
+    for (let i=0; i<size; i++) {
+      out += v1[i] * v2[i];
+    }
+    return out;
+  }
+  static cross(v1: Float32Array, v2: Float32Array): Float32Array {
+    if (v1.length !== 3 || v2.length !== 3)
+      throw new Error("Cannot take cross product of non-3D vectors");
+    return new Float32Array([
+      v1[1]*v2[2] - v1[2]*v2[1],
+      v1[2]*v2[0] - v1[0]*v2[2],
+      v1[0]*v2[1] - v1[1]*v2[0],
+    ]);
+  }
+  static normalize(v: Float32Array): Float32Array {
+    const m = v.reduce((p, v) => p += Math.abs(v), 0);
+    if (m <= 0) throw new Error(`Could not compute magnitude of [${v}]`);
+    const dst = new Float32Array(v.length);
+    for (let i=0; i<v.length; i++) dst[i] = v[i]/m;
+    return dst;
+  }
+  static normalFromCoords(p1: Float32Array, p2: Float32Array, p3: Float32Array): Float32Array {
+    if (p1.length !== 3 || p2.length !== 3 || p3.length !== 3)
+      throw new Error("Cannot find normal in non-3D space");
+    const v1: Float32Array = this.subtract(p2, p1);
+    const v2: Float32Array = this.subtract(p3, p1);
+    const v3: Float32Array = this.cross(v1, v2);
+    return this.normalize(v3);
+  }
 }
-//#endregion Util functions
+//#endregion Vector
 
 export default Renderer;
-export { Renderer, Mat4, colorRGB };
+export { Renderer, Mat4, Vec };
