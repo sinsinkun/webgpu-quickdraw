@@ -5,8 +5,9 @@ import shader from './basic.wgsl?raw';
 const canvas: HTMLCanvasElement | null = document.getElementById("canvas") as HTMLCanvasElement;
 const uilog: HTMLElement | null = document.getElementById("log");
 const scrollable: HTMLElement | null = document.getElementById("log-scroll");
-const btn: HTMLElement | null = document.getElementById("btn-frame+");
-const btn2: HTMLElement | null = document.getElementById("btn-auto");
+const btn: HTMLElement | null = document.getElementById("btn-1");
+const btn2: HTMLElement | null = document.getElementById("btn-2");
+const btn3: HTMLElement | null = document.getElementById("btn-3");
 
 // util function to print to UI
 function log(msg: string): void {
@@ -31,7 +32,7 @@ async function main() {
       [-size, size], [-size, -size], [-size-20, 0],
       [size, size], [size, -size], [size+20, 0],
     ];
-    renderer.addObject2D(verts, pipe1);
+    const obj1 = renderer.addObject2D(verts, pipe1);
     const obj2 = renderer.addObject2D(verts, pipe1);
     const obj3 = renderer.addObject2D(verts, pipe1);
     // update properties
@@ -65,6 +66,17 @@ async function main() {
       }
       intervalHolder = window.setInterval(update, 15);
       log("Drawing to canvas continuously");
+    });
+    btn3?.addEventListener("click", () => {
+      if (canvas) {
+        canvas.width = canvas.width === 650 ? 512 : 650;
+        renderer.updateCanvas(canvas.width, canvas.height);
+        renderer.updateObject2D(obj1);
+        renderer.updateObject2D(obj2, [40, 0], rot, 1.2 + 0.2 * Math.sin(rot / 100));
+        renderer.updateObject2D(obj3, [-40, 0], -rot, 1.2 + 0.2 * Math.cos(rot / 100));
+        renderer.draw();
+        log("Resized canvas");
+      }
     });
   
   } catch (err) {

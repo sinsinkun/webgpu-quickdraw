@@ -88,6 +88,19 @@ class Renderer {
     this.clearColor.b = b ? Math.floor(b)/255 : 0;
     this.clearColor.a = a ? Math.floor(a)/255 : 1;
   }
+  // change canvas size
+  updateCanvas(w: number, h: number) {
+    if (!this.#device) throw new Error("Renderer not initialized");
+    const msaaTexture = this.#device.createTexture({
+      size: [w, h],
+      sampleCount: 4,
+      format: this.#format,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT
+    });
+    this.#msaa = msaaTexture.createView();
+    this.#width = w;
+    this.#height = h;
+  }
   // create pipeline for rendering
   addPipeline2D(shader:string): number {
     if (!this.#device) throw new Error("Renderer not initialized");
