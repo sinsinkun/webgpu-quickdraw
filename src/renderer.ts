@@ -314,7 +314,9 @@ class Renderer {
 /**
  * Container for util functions for matrix math
  * 
- * Note: matrices are ordered [col][row], not [row][col]
+ * Note: matrix elements are ordered [col][row], not [row][col]
+ * 
+ * refer to Mat4.from2Darray function for more details
  */
 class Mat4 {
   // convert 2D array to column matrix
