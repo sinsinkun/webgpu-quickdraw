@@ -300,8 +300,20 @@ class Renderer {
 //#region Matrix 4x4
 /**
  * Container for util functions for matrix math
+ * 
+ * Note: matrices are ordered [col][row], not [row][col]
  */
 class Mat4 {
+  // convert 2D array to column matrix
+  static from2DArray(src: Array<Array<number>>): Float32Array {
+    const dst = new Float32Array([
+      src[0][0], src[1][0], src[2][0], src[3][0],
+      src[0][1], src[1][1], src[2][1], src[3][1],
+      src[0][2], src[1][2], src[2][2], src[3][2],
+      src[0][3], src[1][3], src[2][3], src[3][3],
+    ]);
+    return dst;
+  }
   // create perspective projection matrix
   static perspective(fovY: number, aspectRatio: number, zNear: number, zFar: number): Float32Array {
     const f = Math.tan(Math.PI * 0.5 - 0.5 * (fovY * Math.PI / 180));
@@ -321,7 +333,7 @@ class Mat4 {
     right: number,
     top: number,
     bottom: number,
-    near: number = 0.001,
+    near: number = 0,
     far: number = 1000
   ): Float32Array {
     const dst = new Float32Array([
