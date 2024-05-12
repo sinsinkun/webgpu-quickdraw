@@ -101,7 +101,7 @@ class Renderer {
     this.#width = w;
     this.#height = h;
   }
-  // update 2d camera position
+  // change camera position
   updateCamera2D(x: number, y: number) {
     this.camera2DPos[0] = x;
     this.camera2DPos[1] = y;
@@ -256,7 +256,7 @@ class Renderer {
     this.updateObject2D(this.objects.length - 1);
     return this.objects.length - 1;
   }
-  // update buffers
+  // update buffers for render object
   updateObject2D(
     id: number,
     translate: [number,number] = [0,0],
