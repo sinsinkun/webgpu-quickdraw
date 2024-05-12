@@ -101,6 +101,11 @@ class Renderer {
     this.#width = w;
     this.#height = h;
   }
+  // update 2d camera position
+  updateCamera2D(x: number, y: number) {
+    this.camera2DPos[0] = x;
+    this.camera2DPos[1] = y;
+  }
   // create pipeline for rendering
   addPipeline2D(shader:string): number {
     if (!this.#device) throw new Error("Renderer not initialized");
@@ -301,11 +306,6 @@ class Renderer {
     })
     pass.end();
     this.#device.queue.submit([encoder.finish()]);
-  }
-  // update 2d camera position
-  updateCamera2D(x: number, y: number) {
-    this.camera2DPos[0] = x;
-    this.camera2DPos[1] = y;
   }
 };
 //#endregion Renderer Class
