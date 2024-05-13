@@ -138,8 +138,16 @@ class Renderer {
     this.cameraOrthoPos[1] = y;
     this.cameraOrthoPos[2] = z;
   }
-  // create pipeline for rendering
-  addPipeline(shader:string, objCount:number): number {
+  /**
+   * Creates rendering pipeline to feed render objects into
+   * - Bind groups/uniforms are bundled together with the pipeline
+   * - Uses dynamic offsets for buffers to optimize memory usage
+   * 
+   * @param {string} shader wgsl shader as a string
+   * @param {number} maxObjCount keep low to minimize memory consumption
+   * @returns {number} pipeline id (required for creating render objects)
+   */
+  addPipeline(shader:string, maxObjCount:number): number {
     if (!this.#device) throw new Error("Renderer not initialized");
     const shaderModule: GPUShaderModule = this.#device.createShaderModule({
       label: "shader-module",
@@ -204,7 +212,7 @@ class Renderer {
     const minStrideSize: number = this.limits.minUniformBufferOffsetAlignment;
     const mvpBuffer: GPUBuffer = this.#device.createBuffer({
       label: "mvp-struct-uniform",
-      size: minStrideSize * objCount,
+      size: minStrideSize * maxObjCount,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
     // -- TODO: texture sampler

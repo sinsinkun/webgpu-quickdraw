@@ -32,7 +32,7 @@ async function main() {
     let s1 = 1.2 + 0.4 * Math.sin(rot / 100);
     let s2 = 1.2 + 0.4 * Math.cos(rot / 100);
     // create pipeline
-    const pipe1 = renderer.addPipeline(shader, 2);
+    const pipe1 = renderer.addPipeline(shader, 10);
     // declare vertices to draw (in sets of tris)
     const verts: Array<[number, number, number]> = [
       // face front
