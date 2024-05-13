@@ -32,19 +32,21 @@ class Renderer {
   #format: GPUTextureFormat;
   #context: GPUCanvasContext;
   #msaa: GPUTextureView;
+  #zbuffer: GPUTextureView;
   #width: number;
   #height: number;
   // public properties
-  camera2DPos: [number, number] = [0, 0];
+  cameraOrthoPos: [number, number, number] = [0, 0, -1000];
   pipelines: Array<GPURenderPipeline> = [];
   objects: Array<RenderObject> = [];
   clearColor: GPUColorDict = { r:0, g:0, b:0, a:1 };
 
-  constructor(d: GPUDevice, f: GPUTextureFormat, c: GPUCanvasContext, m: GPUTextureView, w: number, h: number) {
+  constructor(d: GPUDevice, f: GPUTextureFormat, c: GPUCanvasContext, m: GPUTextureView, z: GPUTextureView, w: number, h: number) {
     this.#device = d;
     this.#format = f;
     this.#context = c;
     this.#msaa = m;
+    this.#zbuffer = z;
     this.#width = w;
     this.#height = h;
   }
@@ -66,12 +68,21 @@ class Renderer {
     context.configure({ device, format, alphaMode: 'premultiplied' });
 
     // create texture for MSAA antialiasing
-    const msaaTexture = device.createTexture({
+    const msaaTexture: GPUTexture = device.createTexture({
       size: [canvas.width, canvas.height],
       sampleCount: 4,
       format: format,
       usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
+
+    // create texture for z-buffer
+    const zbufferTexture: GPUTexture = device.createTexture({
+      size: [canvas.width, canvas.height],
+      format: 'depth24plus',
+      sampleCount: 4,
+      mipLevelCount: 1,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT
+    })
 
     // retain initialized components
     return new Renderer(
@@ -79,6 +90,7 @@ class Renderer {
       format,
       context,
       msaaTexture.createView(),
+      zbufferTexture.createView(),
       canvas.width,
       canvas.height,
     );
@@ -93,20 +105,31 @@ class Renderer {
   // change canvas size
   updateCanvas(w: number, h: number) {
     if (!this.#device) throw new Error("Renderer not initialized");
+    // create texture for MSAA antialiasing
     const msaaTexture = this.#device.createTexture({
       size: [w, h],
       sampleCount: 4,
       format: this.#format,
       usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
+    // create texture for z-buffer
+    const zbufferTexture: GPUTexture = this.#device.createTexture({
+      size: [w, h],
+      format: 'depth24plus',
+      sampleCount: 4,
+      mipLevelCount: 1,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT
+    })
     this.#msaa = msaaTexture.createView();
+    this.#zbuffer = zbufferTexture.createView();
     this.#width = w;
     this.#height = h;
   }
   // change camera position
-  updateCamera2D(x: number, y: number) {
-    this.camera2DPos[0] = x;
-    this.camera2DPos[1] = y;
+  updateCameraOrtho(x: number, y: number, z: number) {
+    this.cameraOrthoPos[0] = x;
+    this.cameraOrthoPos[1] = y;
+    this.cameraOrthoPos[2] = z;
   }
   // create pipeline for rendering
   addPipeline(shader:string): number {
@@ -176,13 +199,21 @@ class Renderer {
       },
       multisample: {
         count: 4,
-      }
+      },
+      depthStencil: {
+        format: 'depth24plus',
+        depthWriteEnabled: true,
+        depthCompare: 'less',
+      },
+      // primitive: {
+      //   cullMode: 'back' // culls back-facing tris, breaks self-transparency
+      // }
     });
     this.pipelines.push(pipeline);
     return (this.pipelines.length - 1);
   }
   // create buffers for render object
-  addObject2D(
+  addObject(
     pipelineIndex: number,
     verts: Array<[number, number, number]>,
     uvs?: Array<[number, number]>,
@@ -282,12 +313,13 @@ class Renderer {
       bindGroup: bindGroup0,
       bindEntries: [modelMatBuffer, viewMatBuffer, projMatBuffer, colorBuffer],
     };
+    const index: number = this.objects.length;
     this.objects.push(obj);
-    this.updateObject2D(this.objects.length - 1);
-    return this.objects.length - 1;
+    this.updateObject(index);
+    return index;
   }
   // update buffers for render object
-  updateObject2D(
+  updateObject(
     id: number,
     translate: [number, number, number] = [0, 0, 0],
     rotateAxis: [number, number, number] = [0, 0, 1],
@@ -306,7 +338,7 @@ class Renderer {
     const model: Float32Array = Mat4.multiply(modelt, Mat4.multiply(modelr, models));
     this.#device.queue.writeBuffer(obj.bindEntries[0], 0, model);
     // view matrix
-    const view: Float32Array = Mat4.translate(this.camera2DPos[0], this.camera2DPos[1], -1000);
+    const view: Float32Array = Mat4.translate(this.cameraOrthoPos[0], this.cameraOrthoPos[1], this.cameraOrthoPos[2]);
     this.#device.queue.writeBuffer(obj.bindEntries[1], 0, view);
     // projection matrix
     const w2 = this.#width/2;
@@ -326,7 +358,13 @@ class Renderer {
         clearValue: this.clearColor,
         loadOp: "clear",
         storeOp: "store",
-      }]
+      }],
+      depthStencilAttachment: {
+        view: this.#zbuffer,
+        depthClearValue: 1,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
+      }
     });
     this.objects.forEach(obj => {
       if (!obj.visible) return;
@@ -382,7 +420,7 @@ class Mat4 {
     top: number,
     bottom: number,
     near: number = 0,
-    far: number = 1000
+    far: number = 2000
   ): Float32Array {
     const dst = new Float32Array([
       (2/(right-left)), 0, 0, 0,

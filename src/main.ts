@@ -21,44 +21,72 @@ async function main() {
     // initialize renderer
     const renderer = await Renderer.init(canvas);
     // change background color
-    renderer.updateClearRGB(80, 100, 160);
-    const size = 40;
+    renderer.updateClearRGB(30, 40, 60);
+    // object properties
+    const size = 60;
+    const offset1: [number, number, number] = [90, 0, 0];
+    const offset2: [number, number, number] = [-90, 0, 0];
+    const rotAxis1: [number, number, number] = [1, -1, 0.3];
+    const rotAxis2: [number, number, number] = [-1, 1, 0.3];
+    let rot: number = 76;
+    let s1 = 1.2 + 0.4 * Math.sin(rot / 100);
+    let s2 = 1.2 + 0.4 * Math.cos(rot / 100);
     // create pipeline
     const pipe1 = renderer.addPipeline(shader);
     // declare vertices to draw (in sets of tris)
     const verts: Array<[number, number, number]> = [
-      [size, size, 0], [size, -size, 0], [-size, -size, 0],
-      [size, size, 0], [-size, size, 0], [-size, -size, 0],
-      [-size, size, 0], [-size, -size, 0], [-size-20, 0, 0],
-      [size, size, 0], [size, -size, 0], [size+20, 0, 0],
+      // face front
+      [size,size,size],[size,-size,size],[-size,-size,size],
+      [-size,-size,size],[-size,size,size],[size,size,size],
+      // face back
+      [-size,size,-size],[-size,-size,-size],[size,-size,-size],
+      [size,-size,-size],[size,size,-size],[-size,size,-size],
+      // face left
+      [-size,size,size],[-size,-size,size],[-size,-size,-size],
+      [-size,-size,-size],[-size,size,-size],[-size,size,size],
+      // face right
+      [size,size,-size],[size,-size,-size],[size,-size,size],
+      [size,-size,size],[size,size,size],[size,size,-size],
+      // face up
+      [size,-size,size],[size,-size,-size],[-size,-size,-size],
+      [-size,-size,-size],[-size,-size,size],[size,-size,size],
+      // face down
+      [size,size,-size],[size,size,size],[-size,size,size],
+      [-size,size,size],[-size,size,-size],[size,size,-size],
     ];
     // declare uv setup
     const uvs: Array<[number, number]> = [
-      [0, 0], [0, 1], [1, 1],
-      [0, 0], [1, 0], [1, 1],
-      [1, 0], [1, 1], [0, 0],
-      [0, 0], [0, 1], [1, 1],
+      // face front
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      // face back
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      // face left
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      // face right
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      // face up
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      // face down
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
     ]
-    const obj1 = renderer.addObject2D(pipe1, verts, uvs);
-    const obj2 = renderer.addObject2D(pipe1, verts, uvs);
-    const obj3 = renderer.addObject2D(pipe1, verts, uvs);
+    const obj1 = renderer.addObject(pipe1, verts, uvs);
+    const obj2 = renderer.addObject(pipe1, verts, uvs);
     // update properties
-    renderer.updateObject2D(obj2, [40, 0, 0]);
-    renderer.updateObject2D(obj3, [-40, 0, 0]);
+    renderer.updateObject(obj1, offset1, rotAxis1, rot, [s1, s1, s1]);
+    renderer.updateObject(obj2, offset2, rotAxis2, rot, [s2, s2, s2]);
     // render to canvas
     renderer.draw();
     log("Drew to canvas");
   
     // button event listeners
-    let rot: number = 0;
     let intervalHolder: ReturnType<typeof setInterval> | null = null;
     function update() {
       // update properties
       rot += 2;
-      const s1 = 1.2 + 0.2 * Math.sin(rot / 100);
-      const s2 = 1.2 + 0.2 * Math.cos(rot / 100);
-      renderer.updateObject2D(obj2, [40, 0, 0], [0, 0, 1], rot, [s1, s1, 1]);
-      renderer.updateObject2D(obj3, [-40, 0, 0], [0, 0, 1], -rot, [s2, s2, 1]);
+      s1 = 1.2 + 0.4 * Math.sin(rot / 100);
+      s2 = 1.2 + 0.4 * Math.cos(rot / 100);
+      renderer.updateObject(obj1, offset1, rotAxis1, rot, [s1, s1, s1]);
+      renderer.updateObject(obj2, offset2, rotAxis2, rot, [s2, s2, s2]);
       // render to canvas
       renderer.draw();
     }
@@ -80,11 +108,8 @@ async function main() {
       if (canvas) {
         canvas.width = canvas.width === 650 ? 512 : 650;
         renderer.updateCanvas(canvas.width, canvas.height);
-        renderer.updateObject2D(obj1);
-        const s1 = 1.2 + 0.2 * Math.sin(rot / 100);
-        const s2 = 1.2 + 0.2 * Math.cos(rot / 100);
-        renderer.updateObject2D(obj2, [40, 0, 0], [0, 0, 1], rot, [s1, s1, 1]);
-        renderer.updateObject2D(obj3, [-40, 0, 0], [0, 0, 1], -rot, [s2, s2, 1]);
+        renderer.updateObject(obj1, offset1, rotAxis1, rot, [s1, s1, s1]);
+        renderer.updateObject(obj2, offset2, rotAxis2, rot, [s2, s2, s2]);
         renderer.draw();
         log("Resized canvas");
       }
