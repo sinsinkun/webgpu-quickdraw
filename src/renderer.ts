@@ -7,6 +7,11 @@ interface RenderObject {
   normalBuffer: GPUBuffer,
   vertexCount: number,
   pipelineIndex: number,
+  pipelineOffset: number,
+}
+// render pipeline information
+interface RenderPipeline {
+  pipe: GPURenderPipeline,
   bindGroup: GPUBindGroup,
   bindEntries: Array<GPUBuffer>,
 }
@@ -36,8 +41,9 @@ class Renderer {
   #width: number;
   #height: number;
   // public properties
+  limits: GPUSupportedLimits;
   cameraOrthoPos: [number, number, number] = [0, 0, -1000];
-  pipelines: Array<GPURenderPipeline> = [];
+  pipelines: Array<RenderPipeline> = [];
   objects: Array<RenderObject> = [];
   clearColor: GPUColorDict = { r:0, g:0, b:0, a:1 };
 
@@ -49,6 +55,7 @@ class Renderer {
     this.#zbuffer = z;
     this.#width = w;
     this.#height = h;
+    this.limits = d.limits;
   }
   // initialize WebGPU connection
   static async init(canvas: HTMLCanvasElement | null): Promise<Renderer> {
@@ -132,36 +139,20 @@ class Renderer {
     this.cameraOrthoPos[2] = z;
   }
   // create pipeline for rendering
-  addPipeline(shader:string): number {
+  addPipeline(shader:string, objCount:number): number {
     if (!this.#device) throw new Error("Renderer not initialized");
-    // TODO index layout
     const shaderModule: GPUShaderModule = this.#device.createShaderModule({
       label: "shader-module",
       code: shader
     });
-    // define uniform layout
+    // create pipeline
     const bindGroupLayout: GPUBindGroupLayout = this.#device.createBindGroupLayout({
       entries: [
-        { // model matrix
+        { // mvp matrix
           binding: 0,
           visibility: GPUShaderStage.VERTEX,
-          buffer: {}
+          buffer: { hasDynamicOffset:true }
         },
-        { // view matrix
-          binding: 1,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: {}
-        },
-        { // projection matrix
-          binding: 2,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: {}
-        },
-        { // color
-          binding: 3,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          buffer: {}
-        }
       ]
     });
     const pipelineLayout: GPUPipelineLayout = this.#device.createPipelineLayout({
@@ -209,7 +200,31 @@ class Renderer {
       //   cullMode: 'back' // culls back-facing tris, breaks self-transparency
       // }
     });
-    this.pipelines.push(pipeline);
+    // create uniform buffers
+    const minStrideSize: number = this.limits.minUniformBufferOffsetAlignment;
+    const mvpBuffer: GPUBuffer = this.#device.createBuffer({
+      label: "mvp-struct-uniform",
+      size: minStrideSize * objCount,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    });
+    // -- TODO: texture sampler
+    // -- TODO: intake custom uniforms
+    // create bind group
+    const mvpSize: number = 4 * 4 * 4 * 3; // mat4 32bit/4byte floats
+    const bindGroup0: GPUBindGroup = this.#device.createBindGroup({
+      label: "bind-group-0",
+      layout: pipeline.getBindGroupLayout(0),
+      entries: [
+        {binding: 0, resource: { buffer: mvpBuffer, size: mvpSize }}
+      ]
+    });
+    // add to cache
+    const pipelineDyn: RenderPipeline = {
+      pipe: pipeline,
+      bindGroup: bindGroup0,
+      bindEntries: [mvpBuffer]
+    };
+    this.pipelines.push(pipelineDyn);
     return (this.pipelines.length - 1);
   }
   // create buffers for render object
@@ -218,7 +233,6 @@ class Renderer {
     verts: Array<[number, number, number]>,
     uvs?: Array<[number, number]>,
     normals?: Array<[number, number, number]>,
-    objColor?: [number, number, number, number],
   ): number {
     if (!this.#device) throw new Error("Renderer not initialized");
     if (verts.length < 3) throw new Error("Not enough vertices");
@@ -265,58 +279,19 @@ class Renderer {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
     this.#device.queue.writeBuffer(normalBuffer, 0, normalMap);
-    // create uniform buffers
-    const mat4Size: number = 4 * 4 * 4; // mat4 32bit/4byte floats
-    const modelMatBuffer: GPUBuffer = this.#device.createBuffer({
-      label: "mvp-uniform",
-      size: mat4Size,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-    const viewMatBuffer: GPUBuffer = this.#device.createBuffer({
-      label: "mvp-uniform",
-      size: mat4Size,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-    const projMatBuffer: GPUBuffer = this.#device.createBuffer({
-      label: "mvp-uniform",
-      size: mat4Size,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-    const colorBuffer: GPUBuffer = this.#device.createBuffer({
-      label: "color-uniform",
-      size: 16, // 4 32bit floats
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-    // create bind group
-    const bindGroup0: GPUBindGroup = this.#device.createBindGroup({
-      label: "bind-group-0",
-      layout: this.pipelines[pipelineIndex].getBindGroupLayout(0),
-      entries: [
-        {binding: 0, resource: { buffer: modelMatBuffer }},
-        {binding: 1, resource: { buffer: viewMatBuffer }},
-        {binding: 2, resource: { buffer: projMatBuffer }},
-        {binding: 3, resource: { buffer: colorBuffer }},
-      ]
-    });
-    // pre-set buffers
-    let cv: Array<number> = objColor ? objColor : [255, 255, 255, 255];
-    const color: Float32Array = Vec.colorRGB(cv[0], cv[1], cv[2], cv[3]);
-    this.#device.queue.writeBuffer(colorBuffer, 0, color);
     // save to cache
+    const id = this.objects.length;
     const obj: RenderObject = {
       visible: true,
       vertexBuffer,
       uvBuffer,
       normalBuffer,
       vertexCount: vlen,
-      pipelineIndex: pipelineIndex,
-      bindGroup: bindGroup0,
-      bindEntries: [modelMatBuffer, viewMatBuffer, projMatBuffer, colorBuffer],
-    };
-    const index: number = this.objects.length;
+      pipelineIndex,
+      pipelineOffset: id,
+    }
     this.objects.push(obj);
-    this.updateObject(index);
-    return index;
+    return id;
   }
   // update buffers for render object
   updateObject(
@@ -330,21 +305,30 @@ class Renderer {
     if (!this.#device) throw new Error("Renderer not initialized");
     const obj = this.objects[id];
     if (!obj) throw new Error(`Could not find pipeline id:${id}`);
+    const dpipe = this.pipelines[obj.pipelineIndex];
     obj.visible = visible;
     // model matrix
     const modelt: Float32Array = Mat4.translate(translate[0], translate[1], translate[2]);
     const modelr: Float32Array = Mat4.rotate(rotateAxis, rotateDeg * Math.PI / 180);
     const models: Float32Array = Mat4.scale(scale[0], scale[1], scale[2]);
     const model: Float32Array = Mat4.multiply(modelt, Mat4.multiply(modelr, models));
-    this.#device.queue.writeBuffer(obj.bindEntries[0], 0, model);
     // view matrix
     const view: Float32Array = Mat4.translate(this.cameraOrthoPos[0], this.cameraOrthoPos[1], this.cameraOrthoPos[2]);
-    this.#device.queue.writeBuffer(obj.bindEntries[1], 0, view);
     // projection matrix
     const w2 = this.#width/2;
     const h2 = this.#height/2;
     const proj: Float32Array = Mat4.ortho(-w2, w2, -h2, h2);
-    this.#device.queue.writeBuffer(obj.bindEntries[2], 0, proj);
+    // join everything together
+    const mat4Size: number = 4 * 4;
+    const mvpSize: number = 4 * 4 * 3; // mat4 32bit/4byte floats
+    const mvp = new Float32Array(mvpSize);
+    for (let i=0; i<mvpSize; i++) {
+      if (i < mat4Size) mvp[i] = model[i];
+      else if (i < mat4Size * 2) mvp[i] = view[i - mat4Size];
+      else mvp[i] = proj[i - mat4Size*2];
+    }
+    const stride = this.limits.minStorageBufferOffsetAlignment;
+    this.#device.queue.writeBuffer(dpipe.bindEntries[0], stride * obj.pipelineOffset, mvp);
   }
   // render to canvas
   draw() {
@@ -368,11 +352,13 @@ class Renderer {
     });
     this.objects.forEach(obj => {
       if (!obj.visible) return;
-      pass.setPipeline(this.pipelines[obj.pipelineIndex]);
+      const pipeline = this.pipelines[obj.pipelineIndex];
+      const stride = this.limits.minUniformBufferOffsetAlignment;
+      pass.setPipeline(pipeline.pipe);
       pass.setVertexBuffer(0, obj.vertexBuffer);
       pass.setVertexBuffer(1, obj.uvBuffer);
       pass.setVertexBuffer(2, obj.normalBuffer);
-      pass.setBindGroup(0, obj.bindGroup);
+      pass.setBindGroup(0, pipeline.bindGroup, [stride * obj.pipelineOffset]);
       pass.draw(obj.vertexCount);
     })
     pass.end();
@@ -547,6 +533,16 @@ class Mat4 {
     dst[13] = a01 * b30 + a11 * b31 + a21 * b32 + a31 * b33;
     dst[14] = a02 * b30 + a12 * b31 + a22 * b32 + a32 * b33;
     dst[15] = a03 * b30 + a13 * b31 + a23 * b32 + a33 * b33;
+    return dst;
+  }
+  // transpose 4x4 matrix
+  static transpose(src: Float32Array): Float32Array {
+    const dst = new Float32Array(16);
+    for (let i=0; i<4; i++) {
+      for (let j=0; j<4; j++) {
+        dst[i*4 + j] = src[j*4 + i];
+      }
+    }
     return dst;
   }
 }

@@ -32,7 +32,7 @@ async function main() {
     let s1 = 1.2 + 0.4 * Math.sin(rot / 100);
     let s2 = 1.2 + 0.4 * Math.cos(rot / 100);
     // create pipeline
-    const pipe1 = renderer.addPipeline(shader);
+    const pipe1 = renderer.addPipeline(shader, 2);
     // declare vertices to draw (in sets of tris)
     const verts: Array<[number, number, number]> = [
       // face front
@@ -71,25 +71,24 @@ async function main() {
     ]
     const obj1 = renderer.addObject(pipe1, verts, uvs);
     const obj2 = renderer.addObject(pipe1, verts, uvs);
-    // update properties
-    renderer.updateObject(obj1, offset1, rotAxis1, rot, [s1, s1, s1]);
-    renderer.updateObject(obj2, offset2, rotAxis2, rot, [s2, s2, s2]);
-    // render to canvas
-    renderer.draw();
-    log("Drew to canvas");
-  
-    // button event listeners
-    let intervalHolder: ReturnType<typeof setInterval> | null = null;
-    function update() {
+    // update obj parameters
+    function update(redraw:boolean = false) {
       // update properties
-      rot += 2;
-      s1 = 1.2 + 0.4 * Math.sin(rot / 100);
-      s2 = 1.2 + 0.4 * Math.cos(rot / 100);
+      if (!redraw) {
+        rot += 2;
+        s1 = 1.2 + 0.4 * Math.sin(rot / 100);
+        s2 = 1.2 + 0.4 * Math.cos(rot / 100);
+      }
       renderer.updateObject(obj1, offset1, rotAxis1, rot, [s1, s1, s1]);
       renderer.updateObject(obj2, offset2, rotAxis2, rot, [s2, s2, s2]);
       // render to canvas
       renderer.draw();
     }
+    update(true);
+    log("Drew to canvas");
+  
+    // button event listeners
+    let intervalHolder: ReturnType<typeof setInterval> | null = null;
     btn?.addEventListener("click", () => {
       update();
       log("Drew to canvas");
@@ -108,9 +107,7 @@ async function main() {
       if (canvas) {
         canvas.width = canvas.width === 650 ? 512 : 650;
         renderer.updateCanvas(canvas.width, canvas.height);
-        renderer.updateObject(obj1, offset1, rotAxis1, rot, [s1, s1, s1]);
-        renderer.updateObject(obj2, offset2, rotAxis2, rot, [s2, s2, s2]);
-        renderer.draw();
+        update(true);
         log("Resized canvas");
       }
     });

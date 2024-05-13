@@ -1,7 +1,10 @@
-@group(0) @binding(0) var<uniform> modelMat: mat4x4<f32>;
-@group(0) @binding(1) var<uniform> viewMat: mat4x4<f32>;
-@group(0) @binding(2) var<uniform> projMat: mat4x4<f32>;
-@group(0) @binding(3) var<uniform> color: vec4f;
+@group(0) @binding(0) var<uniform> mvp: MVP;
+
+struct MVP {
+  model: mat4x4<f32>,
+  view: mat4x4<f32>,
+  proj: mat4x4<f32>,
+}
 
 struct VertIn {
   @location(0) pos: vec3f,
@@ -18,8 +21,8 @@ struct VertOut {
 @vertex
 fn vertexMain(input: VertIn) -> VertOut {
   var out: VertOut;
-  let mvp = projMat * viewMat * modelMat;
-  out.pos = mvp * vec4f(input.pos, 1);
+  let mvpMat = mvp.proj * mvp.view * mvp.model;
+  out.pos = mvpMat * vec4f(input.pos, 1);
   out.uv = input.uv;
   out.normal = input.normal;
   return out;
