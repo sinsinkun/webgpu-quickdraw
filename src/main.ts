@@ -32,7 +32,7 @@ async function main() {
     let rot: number = 40;
     let raxis: [number, number, number] = [1, 0.5, 0.5];
     // create pipeline
-    const bitmap = await renderer.loadTexture('./vite-webgpu/logo.png');
+    const bitmap = await renderer.loadTexture('/logo.png');
     const pipe1 = renderer.addPipeline(shader, 10, bitmap);
     // declare vertices to draw (in sets of tris)
     const cube = Primitives.cube(250, 250, 250);
