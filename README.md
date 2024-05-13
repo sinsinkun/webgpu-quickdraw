@@ -13,7 +13,9 @@ Features:
 - intakes uv buffer for VBO
 - intakes normal buffer for VBO
 
-<img src="public/screenshot.png" width="600px" />
+<img src="public/screenshot.png" width="700px" />
+
+1000 cubes with varying transforms, MSAA, and transparency, renders with 2ms GPU computation time
 
 ### Acknowledgements
 

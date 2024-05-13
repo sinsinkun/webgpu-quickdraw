@@ -30,5 +30,6 @@ fn vertexMain(input: VertIn) -> VertOut {
 
 @fragment
 fn fragmentMain(input: VertOut) -> @location(0) vec4f {
-  return vec4f(input.uv, 0.5, 0.8);
+  let n = (1.0 + input.normal) / 2.0;
+  return vec4f(n, 0.8);
 }

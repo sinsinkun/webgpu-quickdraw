@@ -1,4 +1,4 @@
-import Renderer from './renderer';
+import { Renderer, Primitives } from './renderer';
 import shader from './basic.wgsl?raw';
 
 // get HTML elements
@@ -23,64 +23,52 @@ async function main() {
     // change background color
     renderer.updateClearRGB(30, 40, 60);
     // object properties
-    const size = 60;
-    const offset1: [number, number, number] = [90, 0, 0];
-    const offset2: [number, number, number] = [-90, 0, 0];
     const rotAxis1: [number, number, number] = [1, -1, 0.3];
     const rotAxis2: [number, number, number] = [-1, 1, 0.3];
+    const rotAxis3: [number, number, number] = [1, 0.3, -1];
+    const rotAxis4: [number, number, number] = [-1, 0.3, 1];
+    const rotAxis5: [number, number, number] = [0.3, 1, -1];
+    const rotAxis6: [number, number, number] = [0.3, -1, 1];
     let rot: number = 76;
-    let s1 = 1.2 + 0.4 * Math.sin(rot / 100);
-    let s2 = 1.2 + 0.4 * Math.cos(rot / 100);
     // create pipeline
-    const pipe1 = renderer.addPipeline(shader, 10);
+    const pipe1 = renderer.addPipeline(shader, 1000);
     // declare vertices to draw (in sets of tris)
-    const verts: Array<[number, number, number]> = [
-      // face front
-      [size,size,size],[size,-size,size],[-size,-size,size],
-      [-size,-size,size],[-size,size,size],[size,size,size],
-      // face back
-      [-size,size,-size],[-size,-size,-size],[size,-size,-size],
-      [size,-size,-size],[size,size,-size],[-size,size,-size],
-      // face left
-      [-size,size,size],[-size,-size,size],[-size,-size,-size],
-      [-size,-size,-size],[-size,size,-size],[-size,size,size],
-      // face right
-      [size,size,-size],[size,-size,-size],[size,-size,size],
-      [size,-size,size],[size,size,size],[size,size,-size],
-      // face up
-      [size,-size,size],[size,-size,-size],[-size,-size,-size],
-      [-size,-size,-size],[-size,-size,size],[size,-size,size],
-      // face down
-      [size,size,-size],[size,size,size],[-size,size,size],
-      [-size,size,size],[-size,size,-size],[size,size,-size],
-    ];
-    // declare uv setup
-    const uvs: Array<[number, number]> = [
-      // face front
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
-      // face back
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
-      // face left
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
-      // face right
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
-      // face up
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
-      // face down
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
-    ]
-    const obj1 = renderer.addObject(pipe1, verts, uvs);
-    const obj2 = renderer.addObject(pipe1, verts, uvs);
+    const cube = Primitives.cube(10, 10, 10);
+    for (let i=0; i<1000; i++) {
+      renderer.addObject(pipe1, cube.vertices, cube.uvs, cube.normals);
+    }
     // update obj parameters
     function update(redraw:boolean = false) {
       // update properties
-      if (!redraw) {
-        rot += 2;
-        s1 = 1.2 + 0.4 * Math.sin(rot / 100);
-        s2 = 1.2 + 0.4 * Math.cos(rot / 100);
+      if (!redraw) rot += 1;
+      for (let i=0; i<32; i++) {
+        for (let j=0; j<31; j++) {
+          const id: number = i*31 + j;
+          let raxis: [number, number, number] = [0, 0, 1];
+          switch((i+j) % 6) {
+            case 1:
+              raxis = rotAxis1;
+              break;
+            case 2:
+              raxis = rotAxis2;
+              break;
+            case 3:
+              raxis = rotAxis3;
+              break;
+            case 4:
+              raxis = rotAxis4;
+              break;
+            case 5:
+              raxis = rotAxis5;
+              break;
+            default:
+              raxis = rotAxis6;
+              break;
+          }
+          const s = (i*j) % 4 ? 1 : 1.5;
+          renderer.updateObject(id, [248 - i * 16, 240 - j * 16, 0], raxis, rot + j * 3 - i * 3, [s, s, s]);
+        }
       }
-      renderer.updateObject(obj1, offset1, rotAxis1, rot, [s1, s1, s1]);
-      renderer.updateObject(obj2, offset2, rotAxis2, rot, [s2, s2, s2]);
       // render to canvas
       renderer.draw();
     }

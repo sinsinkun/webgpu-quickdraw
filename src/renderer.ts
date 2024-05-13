@@ -15,6 +15,12 @@ interface RenderPipeline {
   bindGroup: GPUBindGroup,
   bindEntries: Array<GPUBuffer>,
 }
+// shape data
+interface Shape {
+  vertices: Array<[number, number, number]>,
+  uvs: Array<[number, number]>,
+  normals: Array<[number, number, number]>,
+}
 //#endregion Types
 
 //#region Renderer Class
@@ -25,9 +31,14 @@ interface RenderPipeline {
  * 
  * ### Usage:
  * ```js
+ * import { Renderer, Primitive } from 'basic-webpu';
+ * 
  * const renderer = await Renderer.init(canvas);
  * const pipe1 = renderer.addPipeline2D(shader);
- * const obj1 = renderer.addObject2D(vertices);
+ * const shape = Primitive.cube(20);
+ * const obj1 = renderer.addObject2D(pipe1, shape.vertices, shape.uvs, shape.normals);
+ * renderer.update(obj1, [0, 10, 0]);
+ * 
  * renderer.draw();
  * ```
  */
@@ -202,7 +213,7 @@ class Renderer {
       depthStencil: {
         format: 'depth24plus',
         depthWriteEnabled: true,
-        depthCompare: 'less',
+        depthCompare: 'less-equal',
       },
       // primitive: {
       //   cullMode: 'back' // culls back-facing tris, breaks self-transparency
@@ -227,12 +238,12 @@ class Renderer {
       ]
     });
     // add to cache
-    const pipelineDyn: RenderPipeline = {
+    const pipe: RenderPipeline = {
       pipe: pipeline,
       bindGroup: bindGroup0,
       bindEntries: [mvpBuffer]
     };
-    this.pipelines.push(pipelineDyn);
+    this.pipelines.push(pipe);
     return (this.pipelines.length - 1);
   }
   // create buffers for render object
@@ -299,6 +310,7 @@ class Renderer {
       pipelineOffset: id,
     }
     this.objects.push(obj);
+    this.updateObject(id);
     return id;
   }
   // update buffers for render object
@@ -312,8 +324,9 @@ class Renderer {
   ) {
     if (!this.#device) throw new Error("Renderer not initialized");
     const obj = this.objects[id];
-    if (!obj) throw new Error(`Could not find pipeline id:${id}`);
+    if (!obj) throw new Error(`Could not find object ${id}`);
     const dpipe = this.pipelines[obj.pipelineIndex];
+    if (!dpipe) throw new Error(`Could not find pipeline ${obj.pipelineIndex}`);
     obj.visible = visible;
     // model matrix
     const modelt: Float32Array = Mat4.translate(translate[0], translate[1], translate[2]);
@@ -663,5 +676,89 @@ class Vec {
 }
 //#endregion Vector
 
+//#region Primitives
+/**
+ * Helper for building common shapes
+ */
+class Primitives {
+  static template(): Shape {
+    const vertices: Array<[number, number, number]> = [];
+    const uvs: Array<[number, number]> = [];
+    const normals: Array<[number, number, number]> = [];
+    return { vertices, uvs, normals }
+  }
+  static cube(width:number, height?:number, depth?:number): Shape {
+    const w = width/2;
+    const h = height ? height/2 : width/2;
+    const d = depth ? depth/2 : width/2;
+    const vertices: Array<[number, number, number]> = [
+      // face front
+      [w,h,d],[w,-h,d],[-w,-h,d],
+      [-w,-h,d],[-w,h,d],[w,h,d],
+      // face back
+      [-w,h,-d],[-w,-h,-d],[w,-h,-d],
+      [w,-h,-d],[w,h,-d],[-w,h,-d],
+      // face left
+      [-w,h,d],[-w,-h,d],[-w,-h,-d],
+      [-w,-h,-d],[-w,h,-d],[-w,h,d],
+      // face right
+      [w,h,-d],[w,-h,-d],[w,-h,d],
+      [w,-h,d],[w,h,d],[w,h,-d],
+      // face up
+      [w,-h,d],[w,-h,-d],[-w,-h,-d],
+      [-w,-h,-d],[-w,-h,d],[w,-h,d],
+      // face down
+      [w,h,-d],[w,h,d],[-w,h,d],
+      [-w,h,d],[-w,h,-d],[w,h,-d],
+    ];
+    const uvs: Array<[number, number]> = [
+      // face front
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      // face back
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      // face left
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      // face right
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      // face up
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      // face down
+      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+    ];
+    const normals: Array<[number, number, number]> = [
+      // face front
+      [0,0,1],[0,0,1],[0,0,1],[0,0,1],[0,0,1],[0,0,1],
+      // face back
+      [0,0,-1],[0,0,-1],[0,0,-1],[0,0,-1],[0,0,-1],[0,0,-1],
+      // face left
+      [-1,0,0],[-1,0,0],[-1,0,0],[-1,0,0],[-1,0,0],[-1,0,0],
+      // face right
+      [1,0,0],[1,0,0],[1,0,0],[1,0,0],[1,0,0],[1,0,0],
+      // face up
+      [0,1,0],[0,1,0],[0,1,0],[0,1,0],[0,1,0],[0,1,0],
+      // face down
+      [0,-1,0],[0,-1,0],[0,-1,0],[0,-1,0],[0,-1,0],[0,-1,0],
+    ];
+    return { vertices, uvs, normals }
+  }
+  static rect(width:number, height:number, zIndex:number = 0): Shape {
+    const w = width / 2;
+    const h = height / 2;
+    const vertices: Array<[number, number, number]> = [
+      [w, h, zIndex],[w, -h, zIndex],[-w, -h, zIndex],
+      [-w, -h, zIndex],[-w, h, zIndex],[w, h, zIndex],
+    ];
+    const uvs: Array<[number, number]> = [
+      [1,1],[1,0],[0,0],
+      [0,0],[0,1],[1,1],
+    ];
+    const normals: Array<[number, number, number]> = [
+      [0,0,1],[0,0,1],[0,0,1],
+      [0,0,1],[0,0,1],[0,0,1]
+    ];
+    return { vertices, uvs, normals }
+  }
+}
+
 export default Renderer;
-export { Renderer, Mat4, Vec };
+export { Renderer, Mat4, Vec, Primitives };
