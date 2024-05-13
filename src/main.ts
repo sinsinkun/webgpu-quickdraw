@@ -23,53 +23,31 @@ async function main() {
     // change background color
     renderer.updateClearRGB(30, 40, 60);
     // object properties
-    const rotAxis1: [number, number, number] = [1, -1, 0.3];
-    const rotAxis2: [number, number, number] = [-1, 1, 0.3];
-    const rotAxis3: [number, number, number] = [1, 0.3, -1];
-    const rotAxis4: [number, number, number] = [-1, 0.3, 1];
-    const rotAxis5: [number, number, number] = [0.3, 1, -1];
-    const rotAxis6: [number, number, number] = [0.3, -1, 1];
-    let rot: number = 76;
+    // const rotAxis1: [number, number, number] = [1, -1, 0.3];
+    // const rotAxis2: [number, number, number] = [-1, 1, 0.3];
+    // const rotAxis3: [number, number, number] = [1, 0.3, -1];
+    // const rotAxis4: [number, number, number] = [-1, 0.3, 1];
+    // const rotAxis5: [number, number, number] = [0.3, 1, -1];
+    // const rotAxis6: [number, number, number] = [0.3, -1, 1];
+    let rot: number = 40;
+    let raxis: [number, number, number] = [1, 0.5, 0.5];
     // create pipeline
     const bitmap = await renderer.loadTexture('./vite-webgpu/logo.png');
-    const pipe1 = renderer.addPipeline(shader, 100, bitmap);
+    const pipe1 = renderer.addPipeline(shader, 10, bitmap);
     // declare vertices to draw (in sets of tris)
-    const cube = Primitives.cube(60, 60, 60);
-    for (let i=0; i<100; i++) {
+    const cube = Primitives.cube(250, 250, 250);
+    for (let i=0; i<1; i++) {
       renderer.addObject(pipe1, cube.vertices, cube.uvs, cube.normals);
     }
     // update obj parameters
     function update(redraw:boolean = false) {
       // update properties
-      if (!redraw) rot += 1;
-      for (let i=0; i<10; i++) {
-        for (let j=0; j<10; j++) {
-          const id: number = i*10 + j;
-          let raxis: [number, number, number] = [0, 0, 1];
-          switch((i+j) % 6) {
-            case 1:
-              raxis = rotAxis1;
-              break;
-            case 2:
-              raxis = rotAxis2;
-              break;
-            case 3:
-              raxis = rotAxis3;
-              break;
-            case 4:
-              raxis = rotAxis4;
-              break;
-            case 5:
-              raxis = rotAxis5;
-              break;
-            default:
-              raxis = rotAxis6;
-              break;
-          }
-          const s = (i*j) % 4 ? 1 : 1.5;
-          renderer.updateObject(id, [280 - i * 100, 240 - j * 100, 0], raxis, rot + j * 3 - i * 3, [s, s, s]);
-        }
+      if (!redraw) rot += 2;
+      if (Math.sin(rot * Math.PI / 180) === 0) {
+        if (raxis[1] === 0) raxis = [1, 1, 0];
+        else raxis = [1, 0, 1];
       }
+      renderer.updateObject(0, [0, 0, 0], raxis, rot);
       // render to canvas
       renderer.draw();
     }

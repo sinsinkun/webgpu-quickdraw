@@ -184,11 +184,11 @@ class Renderer {
           visibility: GPUShaderStage.FRAGMENT,
           texture: {}
         },
-        // { // texture sampler
-        //   binding: 2,
-        //   visibility: GPUShaderStage.FRAGMENT,
-        //   sampler: { type:'filtering' }
-        // }
+        { // texture sampler
+          binding: 2,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type:'filtering' }
+        }
       ]
     });
     const pipelineLayout: GPUPipelineLayout = this.#device.createPipelineLayout({
@@ -259,18 +259,18 @@ class Renderer {
     }
     const textureView: GPUTextureView = texture.createView();
     // create sampler
-    // const sampler: GPUSampler = this.#device.createSampler({
-    //   label: "texture-sampler",
-    //   addressModeU: "clamp-to-edge",
-    //   addressModeV: "clamp-to-edge",
-    //   addressModeW: "clamp-to-edge",
-    //   magFilter: "linear",
-    //   minFilter: "linear",
-    //   mipmapFilter: "linear",
-    //   lodMinClamp: 0,
-    //   lodMaxClamp: 1,
-    //   maxAnisotropy: 1
-    // });
+    const sampler: GPUSampler = this.#device.createSampler({
+      label: "texture-sampler",
+      addressModeU: "clamp-to-edge",
+      addressModeV: "clamp-to-edge",
+      addressModeW: "clamp-to-edge",
+      magFilter: "linear",
+      minFilter: "linear",
+      mipmapFilter: "linear",
+      lodMinClamp: 0,
+      lodMaxClamp: 1,
+      maxAnisotropy: 1
+    });
     // -- TODO: intake custom uniforms
     // create bind group
     const mvpSize: number = 4 * 4 * 4 * 3; // mat4 32bit/4byte floats
@@ -280,7 +280,7 @@ class Renderer {
       entries: [
         {binding: 0, resource: { buffer: mvpBuffer, size: mvpSize }},
         {binding: 1, resource: textureView},
-        // {binding: 2, resource: sampler},
+        {binding: 2, resource: sampler},
       ]
     });
     // add to cache
@@ -761,7 +761,7 @@ class Primitives {
       // face front
       [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
       // face back
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      [0,0],[0,1],[1,1],[1,1],[1,0],[0,0],
       // face left
       [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
       // face right
