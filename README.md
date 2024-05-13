@@ -12,6 +12,7 @@ Features:
 - pre-built mvp transforms for vertex shader
 - intakes uv buffer for VBO
 - intakes normal buffer for VBO
+- intakes texture for uv mapping
 
 <img src="public/screenshot.png" width="700px" />
 
