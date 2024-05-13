@@ -31,19 +31,20 @@ async function main() {
     const rotAxis6: [number, number, number] = [0.3, -1, 1];
     let rot: number = 76;
     // create pipeline
-    const pipe1 = renderer.addPipeline(shader, 1000);
+    const bitmap = await renderer.loadTexture('./vite-webgpu/logo.png');
+    const pipe1 = renderer.addPipeline(shader, 100, bitmap);
     // declare vertices to draw (in sets of tris)
-    const cube = Primitives.cube(10, 10, 10);
-    for (let i=0; i<1000; i++) {
+    const cube = Primitives.cube(60, 60, 60);
+    for (let i=0; i<100; i++) {
       renderer.addObject(pipe1, cube.vertices, cube.uvs, cube.normals);
     }
     // update obj parameters
     function update(redraw:boolean = false) {
       // update properties
       if (!redraw) rot += 1;
-      for (let i=0; i<32; i++) {
-        for (let j=0; j<31; j++) {
-          const id: number = i*31 + j;
+      for (let i=0; i<10; i++) {
+        for (let j=0; j<10; j++) {
+          const id: number = i*10 + j;
           let raxis: [number, number, number] = [0, 0, 1];
           switch((i+j) % 6) {
             case 1:
@@ -66,7 +67,7 @@ async function main() {
               break;
           }
           const s = (i*j) % 4 ? 1 : 1.5;
-          renderer.updateObject(id, [248 - i * 16, 240 - j * 16, 0], raxis, rot + j * 3 - i * 3, [s, s, s]);
+          renderer.updateObject(id, [280 - i * 100, 240 - j * 100, 0], raxis, rot + j * 3 - i * 3, [s, s, s]);
         }
       }
       // render to canvas

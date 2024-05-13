@@ -113,6 +113,12 @@ class Renderer {
       canvas.height,
     );
   }
+  // load image bitmap
+  async loadTexture(url: string): Promise<ImageBitmap> {
+    const blob = await fetch(url).then(x => x.blob());
+    const bitmap: ImageBitmap = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
+    return bitmap;
+  }
   // change clear color
   updateClearRGB(r: number, g: number, b: number, a?: number) {
     this.clearColor.r = r ? Math.floor(r)/255 : 0;
@@ -158,7 +164,7 @@ class Renderer {
    * @param {number} maxObjCount keep low to minimize memory consumption
    * @returns {number} pipeline id (required for creating render objects)
    */
-  addPipeline(shader:string, maxObjCount:number): number {
+  addPipeline(shader:string, maxObjCount:number, bitmap?: ImageBitmap): number {
     if (!this.#device) throw new Error("Renderer not initialized");
     const shaderModule: GPUShaderModule = this.#device.createShaderModule({
       label: "shader-module",
@@ -166,12 +172,23 @@ class Renderer {
     });
     // create pipeline
     const bindGroupLayout: GPUBindGroupLayout = this.#device.createBindGroupLayout({
+      label: "bind-group-0-layout",
       entries: [
         { // mvp matrix
           binding: 0,
           visibility: GPUShaderStage.VERTEX,
           buffer: { hasDynamicOffset:true }
         },
+        { // texture
+          binding: 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: {}
+        },
+        // { // texture sampler
+        //   binding: 2,
+        //   visibility: GPUShaderStage.FRAGMENT,
+        //   sampler: { type:'filtering' }
+        // }
       ]
     });
     const pipelineLayout: GPUPipelineLayout = this.#device.createPipelineLayout({
@@ -226,7 +243,34 @@ class Renderer {
       size: minStrideSize * maxObjCount,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
-    // -- TODO: texture sampler
+    // create texture
+    const texture: GPUTexture = this.#device.createTexture({
+      label: 'texture-input',
+      format: 'rgba8unorm',
+      size: [bitmap?.width ?? 10, bitmap?.height ?? 10],
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    if (bitmap) {
+      this.#device.queue.copyExternalImageToTexture(
+        { source: bitmap, flipY: false },
+        { texture },
+        { width: bitmap.width, height: bitmap.height }
+      );
+    }
+    const textureView: GPUTextureView = texture.createView();
+    // create sampler
+    // const sampler: GPUSampler = this.#device.createSampler({
+    //   label: "texture-sampler",
+    //   addressModeU: "clamp-to-edge",
+    //   addressModeV: "clamp-to-edge",
+    //   addressModeW: "clamp-to-edge",
+    //   magFilter: "linear",
+    //   minFilter: "linear",
+    //   mipmapFilter: "linear",
+    //   lodMinClamp: 0,
+    //   lodMaxClamp: 1,
+    //   maxAnisotropy: 1
+    // });
     // -- TODO: intake custom uniforms
     // create bind group
     const mvpSize: number = 4 * 4 * 4 * 3; // mat4 32bit/4byte floats
@@ -234,7 +278,9 @@ class Renderer {
       label: "bind-group-0",
       layout: pipeline.getBindGroupLayout(0),
       entries: [
-        {binding: 0, resource: { buffer: mvpBuffer, size: mvpSize }}
+        {binding: 0, resource: { buffer: mvpBuffer, size: mvpSize }},
+        {binding: 1, resource: textureView},
+        // {binding: 2, resource: sampler},
       ]
     });
     // add to cache
