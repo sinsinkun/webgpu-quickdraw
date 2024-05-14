@@ -1,4 +1,4 @@
-import { Renderer, Primitives } from './renderer';
+import { Renderer, Primitives } from './short-webgpu';
 import shader from './basic.wgsl?raw';
 
 // get HTML elements
@@ -21,27 +21,20 @@ async function main() {
     // initialize renderer
     const renderer = await Renderer.init(canvas);
     // change background color
-    renderer.updateClearRGB(30, 40, 60);
+    renderer.updateClearRGB(15, 20, 30);
     // object properties
-    const vertices: Array<[number, number, number]> = [
-      [260, 260, 0],[260, -260, 0],[-260, -260, 0],
-      [-260, -260, 0],[-260, 260, 0],[260, 260, 0],
-    ];
-    const uvs: Array<[number, number]> = [
-      [1,1],[1,0],[0,0],
-      [0,0],[0,1],[1,1],
-    ];
-    const normals: Array<[number, number, number]> = [
-      [-1,0,-1],[-1,-1,-1],[0,-1,-1],
-      [0,-1,-1],[-1,-1,-1],[-1,0,-1],
+    const rect = Primitives.rect(500, 500);
+    rect.normals = [
+      [-1,-1,0],[0,-1,-1],[0,0,-1],
+      [0,0,-1],[-1,0,-1],[-1,-1,0],
     ]
     let rot: number = 60;
     let raxis: [number, number, number] = [1, 0.6, 0.3];
     // create pipeline
-    let bitmap1: ImageBitmap = await renderer.loadTexture('/vite-webgpu/logo.png');
+    let bitmap1: ImageBitmap = await renderer.loadTexture(import.meta.env.BASE_URL + '/logo.png');
     const pipe1 = renderer.addPipeline(shader, 10, bitmap1);
     const pipe2 = renderer.addPipeline(shader, 10);
-    renderer.addObject(pipe1, vertices, uvs, normals);
+    renderer.addObject(pipe1, rect.vertices, rect.uvs, rect.normals);
     // create objects
     const cube = Primitives.cube(40, 40, 40);
     for (let i=1; i<10; i++) {
@@ -51,9 +44,9 @@ async function main() {
     function update(redraw:boolean = false) {
       // update properties
       if (!redraw) rot += 2;
-      renderer.updateObject(0, [0, 0, 0]);
+      renderer.updateObject(0, [0, 0, -100], [0, 0, 1], 12-0.2*rot);
       for (let i=1; i<10; i++) {
-        renderer.updateObject(i, [300 - i * 60, 50 * Math.sin(i), 20], raxis, rot);
+        renderer.updateObject(i, [300 - i * 60, 50 * Math.sin(i + rot * 0.01), 0], raxis, rot);
       }
       // render to canvas
       renderer.draw();
