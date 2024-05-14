@@ -13,7 +13,7 @@ import type {
  * 
  * ### Usage:
  * ```js
- * import { Renderer, Primitive } from 'basic-webpu';
+ * import { Renderer, Primitive } from 'basic-webgpu';
  * 
  * const renderer = await Renderer.init(canvas);
  * const pipe1 = renderer.addPipeline2D(shader);
