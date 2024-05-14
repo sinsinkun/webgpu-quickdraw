@@ -18,15 +18,17 @@ class Mat4 {
   }
   // create perspective projection matrix
   static perspective(fovY: number, aspectRatio: number, zNear: number, zFar: number): Float32Array {
-    const f = Math.tan(Math.PI * 0.5 - 0.5 * (fovY * Math.PI / 180));
+    const f = Math.tan(Math.PI * 0.5 - 0.5 * fovY * Math.PI / 180);
+    const rangeInv = 1 / (zNear - zFar);
     const a = f / aspectRatio;
-    const r = 1 / (zNear - zFar);
-    const b = zNear * r;
+    const c = zFar * rangeInv;
+    const d = zNear * zFar * rangeInv;
+
     return new Float32Array([
       a, 0, 0, 0,
       0, f, 0, 0,
-      0, 0, r, -1,
-      0, 0, b, 0,
+      0, 0, c, -1,
+      0, 0, d, 0,
     ]);
   }
   // create orthographic projection matrix

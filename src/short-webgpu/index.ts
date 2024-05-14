@@ -38,12 +38,19 @@ export interface Shape {
   normals: Array<[number, number, number]>,
 }
 
-// camera information
-export interface PerspCamera {
-  fovY: number,
-  near: number,
-  far: number,
+export interface UpdateData {
+  id: number,
+  translate?: [number, number, number],
+  rotateAxis?: [number, number, number],
+  rotateDeg?: number,
+  scale?: [number, number, number],
+  visible?: boolean,
+  camera?: CameraType,
 }
-export type CameraType = "ortho" | PerspCamera;
+
+// camera information
+export type CameraType = { type: "ortho" } | {
+  type: "persp", fovY: number, near: number, far: number,
+};
 
 export { Primitives, Mat4, Vec, Renderer };

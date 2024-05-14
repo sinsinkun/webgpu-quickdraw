@@ -1,4 +1,5 @@
 import { Renderer, Primitives } from './short-webgpu';
+import type { CameraType } from './short-webgpu';
 import shader from './basic.wgsl?raw';
 
 // get HTML elements
@@ -23,41 +24,56 @@ async function main() {
     // change background color
     renderer.updateClearRGB(15, 20, 30);
     // object properties
-    const rect = Primitives.rect(500, 500);
-    rect.normals = [
-      [-1,-1,0],[0,-1,-1],[0,0,-1],
-      [0,0,-1],[-1,0,-1],[-1,-1,0],
-    ]
     let rot: number = 60;
     let raxis: [number, number, number] = [1, 0.6, 0.3];
     // create pipeline
     let bitmap1: ImageBitmap = await renderer.loadTexture(import.meta.env.BASE_URL + '/logo.png');
     const pipe1 = renderer.addPipeline(shader, 10, bitmap1);
     const pipe2 = renderer.addPipeline(shader, 100);
-    renderer.addObject(pipe1, rect.vertices, rect.uvs, rect.normals);
+    
+    // create pcamera
+    const pcam: CameraType = {
+      type: "persp",
+      fovY: 80,
+      near: 1,
+      far: 1000,
+    }
     // create objects
-    const cube = Primitives.cube(40, 40, 40);
+    const rect = Primitives.rect(300, 300);
+    rect.normals = [
+      [-1,-1,0],[0,-1,-1],[0,0,-1],
+      [0,0,-1],[-1,0,-1],[-1,-1,0],
+    ]
+    renderer.addObject(pipe1, rect.vertices, rect.uvs, rect.normals);
     for (let i=1; i<100; i++) {
+      const size = 20 + (i%7) * 5;
+      const cube = Primitives.cube(size, size, size);
       renderer.addObject(pipe2, cube.vertices, cube.uvs, cube.normals);
     }
     // update obj parameters
     function update(redraw:boolean = false) {
       // update properties
       if (!redraw) rot += 2;
-      renderer.updateObject(0, [0, 0, -50], [0, 0, 1], 12-0.2*rot);
+      renderer.updateObject({
+        id: 0, 
+        translate: [0, 0, -50],
+        rotateDeg: rot * 0.05,
+        camera: pcam
+      });
       for (let i=0; i<10; i++) {
         for (let j=0; j<10; j++) {
           if (i === 0 && j === 0) continue;
-          renderer.updateObject(
-            i*10 + j, 
-            [
-              270 - i * 60, 
-              50 * Math.sin(i + j * 0.5 + rot * 0.01) + 100 * j - 400, 
+          renderer.updateObject({
+            id: i*10 + j,
+            translate: [
+              250 - i * 50, 
+              50 * Math.sin(i + j * 0.5 + rot * 0.01) + 50 * j - 250, 
               100 * Math.cos(i + j + rot * 0.01)
-            ], 
-            raxis, 
-            rot
-          );
+            ],
+            rotateAxis: raxis,
+            rotateDeg: rot,
+            camera: pcam
+          });
         }
       }
       // render to canvas

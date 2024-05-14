@@ -1,5 +1,10 @@
 import { Mat4 } from "./index";
-import type { RenderObject, RenderBindGroup, RenderPipeline, CameraType } from './index';
+import type {
+  RenderObject,
+  RenderBindGroup,
+  RenderPipeline,
+  UpdateData,
+} from './index';
 
 /**
  * ## Renderer
@@ -30,7 +35,7 @@ class Renderer {
   #height: number;
   // public properties
   limits: GPUSupportedLimits;
-  cameraOrthoPos: [number, number, number] = [0, 0, -200];
+  cameraPos: [number, number, number] = [0, 0, -300];
   pipelines: Array<RenderPipeline> = [];
   objects: Array<RenderObject> = [];
   clearColor: GPUColorDict = { r:0, g:0, b:0, a:1 };
@@ -73,7 +78,7 @@ class Renderer {
     // create texture for z-buffer
     const zbufferTexture: GPUTexture = device.createTexture({
       size: [canvas.width, canvas.height],
-      format: 'depth24plus',
+      format: 'depth32float',
       sampleCount: 4,
       mipLevelCount: 1,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
@@ -118,7 +123,7 @@ class Renderer {
     const zbufferTexture: GPUTexture = this.#device.createTexture({
       label: "z-buffer-texture",
       size: [w, h],
-      format: 'depth24plus',
+      format: 'depth32float',
       sampleCount: 4,
       mipLevelCount: 1,
       usage: GPUTextureUsage.RENDER_ATTACHMENT
@@ -129,10 +134,10 @@ class Renderer {
     this.#height = h;
   }
   // change camera position
-  updateCameraOrtho(x: number, y: number, z: number) {
-    this.cameraOrthoPos[0] = x;
-    this.cameraOrthoPos[1] = y;
-    this.cameraOrthoPos[2] = z;
+  updateCamera(x: number, y: number, z: number) {
+    this.cameraPos[0] = x;
+    this.cameraPos[1] = y;
+    this.cameraPos[2] = z;
   }
   /**
    * Creates rendering pipeline to feed render objects into
@@ -208,7 +213,7 @@ class Renderer {
         count: 4,
       },
       depthStencil: {
-        format: 'depth24plus',
+        format: 'depth32float',
         depthWriteEnabled: true,
         depthCompare: 'less-equal',
       },
@@ -239,12 +244,12 @@ class Renderer {
     const texture: GPUTexture = this.#device.createTexture({
       label: 'texture-input',
       format: 'rgba8unorm',
-      size: [bitmap?.width ?? 10, bitmap?.height ?? 10],
+      size: [bitmap?.width ?? this.#width, bitmap?.height ?? this.#height],
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
     });
     if (bitmap) {
       this.#device.queue.copyExternalImageToTexture(
-        { source: bitmap, flipY: false },
+        { source: bitmap, flipY: true },
         { texture },
         { width: bitmap.width, height: bitmap.height }
       );
@@ -352,38 +357,31 @@ class Renderer {
       obj.customBindGroup = bind;
     }
     this.objects.push(obj);
-    this.updateObject(id);
+    this.updateObject({ id });
     return id;
   }
   // update buffers for render object
-  updateObject(
-    id: number,
-    translate: [number, number, number] = [0, 0, 0],
-    rotateAxis: [number, number, number] = [0, 0, 1],
-    rotateDeg: number = 0,
-    scale: [number, number, number] = [1, 1, 1],
-    visible: boolean = true,
-    camera: CameraType = "ortho",
-  ) {
+  updateObject(input: UpdateData) {
+    const { id, translate, visible, rotateAxis, rotateDeg, scale, camera } = input;
     if (!this.#device) throw new Error("Renderer not initialized");
     const obj = this.objects[id];
     if (!obj) throw new Error(`Could not find object ${id}`);
     const dpipe = this.pipelines[obj.pipelineIndex];
     if (!dpipe) throw new Error(`Could not find pipeline ${obj.pipelineIndex}`);
-    obj.visible = visible;
+    obj.visible = visible ?? true;
     // model matrix
-    const modelt: Float32Array = Mat4.translate(translate[0], translate[1], translate[2]);
-    const modelr: Float32Array = Mat4.rotate(rotateAxis, rotateDeg * Math.PI / 180);
-    const models: Float32Array = Mat4.scale(scale[0], scale[1], scale[2]);
+    const modelt: Float32Array = Mat4.translate(translate?.[0] || 0, translate?.[1] || 0, translate?.[2] || 0);
+    const modelr: Float32Array = Mat4.rotate(rotateAxis || [0,0,1], (rotateDeg || 0) * Math.PI / 180);
+    const models: Float32Array = Mat4.scale(scale?.[0] || 1, scale?.[1] || 1, scale?.[2] || 1);
     const model: Float32Array = Mat4.multiply(modelt, Mat4.multiply(modelr, models));
     // view matrix
-    const view: Float32Array = Mat4.translate(this.cameraOrthoPos[0], this.cameraOrthoPos[1], this.cameraOrthoPos[2]);
+    const view: Float32Array = Mat4.translate(this.cameraPos[0], this.cameraPos[1], this.cameraPos[2]);
     // projection matrix
     const w2 = this.#width/2;
     const h2 = this.#height/2;
-    let proj: Float32Array = new Float32Array(0);
-    if (camera === "ortho") proj = Mat4.ortho(-w2, w2, -h2, h2);
-    else proj = Mat4.perspective(camera.fovY, w2/h2, camera.near, camera.far);
+    let proj: Float32Array;
+    if (camera?.type === "persp") proj = Mat4.perspective(camera.fovY, w2/h2, camera.near, camera.far);
+    else proj = Mat4.ortho(-w2, w2, -h2, h2);
     // join everything together
     const mat4Size: number = 4 * 4;
     const mvpSize: number = 4 * 4 * 3; // mat4 32bit/4byte floats
@@ -396,7 +394,24 @@ class Renderer {
     const stride = this.limits.minStorageBufferOffsetAlignment;
     this.#device.queue.writeBuffer(dpipe.bindGroup0.entries[0], stride * obj.pipelineOffset, mvp);
     if (obj.customBindGroup?.entries && obj.customBindGroup?.texture) {
-      // TODO
+      // TODO: not working
+      const encoder: GPUCommandEncoder = this.#device.createCommandEncoder({ label: "debug-encoder" });
+      const buffer: GPUBuffer = this.#device.createBuffer({
+        label: "depth-transfer-buffer",
+        size: 512 * 512 * 4,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
+      });
+      encoder.copyTextureToBuffer(
+        { texture: this.#zbuffer },
+        { buffer, bytesPerRow: 512 * 4 },
+        { width: this.#zbuffer.width, height: this.#zbuffer.height }
+      );
+      encoder.copyBufferToTexture(
+        { buffer, bytesPerRow: 512 * 4 },
+        { texture: obj.customBindGroup.texture },
+        { width: 512, height: 512 }
+      )
+      this.#device.queue.submit([encoder.finish()]);
     }
   }
   // render to canvas
