@@ -39,7 +39,6 @@ async function main() {
     let raxis: [number, number, number] = [1, 0.6, 0.3];
     // create pipeline
     let bitmap1: ImageBitmap = await renderer.loadTexture('/logo.png');
-    if (!bitmap1) bitmap1 = await renderer.loadTexture('/vite-webgpu/logo.png');
     const pipe1 = renderer.addPipeline(shader, 10, bitmap1);
     const pipe2 = renderer.addPipeline(shader, 10);
     renderer.addObject(pipe1, vertices, uvs, normals);
