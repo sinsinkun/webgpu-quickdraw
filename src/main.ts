@@ -33,20 +33,32 @@ async function main() {
     // create pipeline
     let bitmap1: ImageBitmap = await renderer.loadTexture(import.meta.env.BASE_URL + '/logo.png');
     const pipe1 = renderer.addPipeline(shader, 10, bitmap1);
-    const pipe2 = renderer.addPipeline(shader, 10);
+    const pipe2 = renderer.addPipeline(shader, 100);
     renderer.addObject(pipe1, rect.vertices, rect.uvs, rect.normals);
     // create objects
     const cube = Primitives.cube(40, 40, 40);
-    for (let i=1; i<10; i++) {
+    for (let i=1; i<100; i++) {
       renderer.addObject(pipe2, cube.vertices, cube.uvs, cube.normals);
     }
     // update obj parameters
     function update(redraw:boolean = false) {
       // update properties
       if (!redraw) rot += 2;
-      renderer.updateObject(0, [0, 0, -100], [0, 0, 1], 12-0.2*rot);
-      for (let i=1; i<10; i++) {
-        renderer.updateObject(i, [300 - i * 60, 50 * Math.sin(i + rot * 0.01), 0], raxis, rot);
+      renderer.updateObject(0, [0, 0, -50], [0, 0, 1], 12-0.2*rot);
+      for (let i=0; i<10; i++) {
+        for (let j=0; j<10; j++) {
+          if (i === 0 && j === 0) continue;
+          renderer.updateObject(
+            i*10 + j, 
+            [
+              270 - i * 60, 
+              50 * Math.sin(i + j * 0.5 + rot * 0.01) + 100 * j - 400, 
+              100 * Math.cos(i + j + rot * 0.01)
+            ], 
+            raxis, 
+            rot
+          );
+        }
       }
       // render to canvas
       renderer.draw();

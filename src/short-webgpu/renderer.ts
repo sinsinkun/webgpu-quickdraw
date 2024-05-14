@@ -30,7 +30,7 @@ class Renderer {
   #height: number;
   // public properties
   limits: GPUSupportedLimits;
-  cameraOrthoPos: [number, number, number] = [0, 0, -100];
+  cameraOrthoPos: [number, number, number] = [0, 0, -200];
   pipelines: Array<RenderPipeline> = [];
   objects: Array<RenderObject> = [];
   clearColor: GPUColorDict = { r:0, g:0, b:0, a:1 };
