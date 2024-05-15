@@ -13,6 +13,7 @@ Features:
 - intakes uv buffer for VBO
 - intakes normal buffer for VBO
 - intakes texture for uv mapping
+- can output into textures for post processing
 
 <img src="public/screenshot2.png" width="600px" />
 
@@ -20,7 +21,7 @@ Transparency, MSAA, depth buffer, and texture mapping pre-built
 
 <img src="public/screenshot.png" width="700px" />
 
-1000 cubes with varying transforms, MSAA, and transparency, renders with 2ms GPU computation time
+1000 cubes renders with 2ms GPU computation time
 
 ### Acknowledgements
 

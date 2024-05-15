@@ -3,6 +3,9 @@ import type { CameraType } from './short-webgpu';
 import shader1 from './basic.wgsl?raw';
 import shader2 from "./showtx.wgsl?raw";
 
+// const
+const BASE_URL: string = import.meta.env.BASE_URL;
+
 // get HTML elements
 const canvas: HTMLCanvasElement | null = document.getElementById("canvas") as HTMLCanvasElement;
 const uilog: HTMLElement | null = document.getElementById("log");
@@ -28,9 +31,10 @@ async function main() {
     let rot: number = 60;
     let raxis: [number, number, number] = [1, 0.6, 0.3];
     // create pipeline
-    let bitmap1: ImageBitmap = await renderer.loadTexture(import.meta.env.BASE_URL + '/logo.png');
-    const pipe1 = renderer.addPipeline(shader2, 10, bitmap1);
-    const pipe2 = renderer.addPipeline(shader1, 100, bitmap1);
+    const tx1: number = await renderer.addTexture(400, 400, BASE_URL + '/logo.png');
+    const tx2: number = await renderer.addTexture(512, 512, undefined, true);
+    const pipe1 = renderer.addPipeline(shader2, 10, tx2);
+    const pipe2 = renderer.addPipeline(shader1, 100, tx1);
     
     // create pcamera
     const pcam: CameraType = {
@@ -40,7 +44,7 @@ async function main() {
       far: 1000,
     }
     // create objects
-    const poly = Primitives.regPolygon(250, 8);
+    const poly = Primitives.regPolygon(250, 32);
     const polyId = renderer.addObject(pipe1, poly.vertices, poly.uvs, poly.normals);
     for (let i=0; i<99; i++) {
       const size = 20 + (i%7) * 5;
@@ -54,8 +58,8 @@ async function main() {
       renderer.updateObject({
         pipelineId: pipe1,
         objectId: polyId, 
-        translate: [0, 0, -50],
-        rotateAxis: [0, 0, 1],
+        translate: [0, 0, -100],
+        rotateAxis: [0, 1, 0],
         rotateDeg: rot * 0.2,
         camera: pcam
       });
@@ -76,8 +80,10 @@ async function main() {
           });
         }
       }
+      // render to texture
+      renderer.draw([pipe2], tx2);
       // render to canvas
-      renderer.draw();
+      renderer.draw([pipe1]);
     }
     update(true);
     log("Drew to canvas");
@@ -102,6 +108,7 @@ async function main() {
       if (canvas) {
         canvas.width = canvas.width === 680 ? 512 : 680;
         renderer.updateCanvas(canvas.width, canvas.height);
+        renderer.updateTextureSize(tx2, pipe1, canvas.width, canvas.height, true);
         update(true);
         log("Resized canvas");
       }

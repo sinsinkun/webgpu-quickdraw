@@ -11,20 +11,19 @@ export interface RenderObject {
   normalBuffer: GPUBuffer,
   vertexCount: number,
   pipelineIndex: number,
-  customBindGroup?: RenderBindGroup,
 }
 
 // render bind group information
 export interface RenderBindGroup {
   base: GPUBindGroup,
   entries: Array<GPUBuffer>,
-  texture?: GPUTexture,
 }
 
 // render pipeline information
 export interface RenderPipeline {
   pipe: GPURenderPipeline,
   objects: Array<RenderObject>,
+  maxObjCount: number,
   bindGroup0: RenderBindGroup,
   bindGroup1?: RenderBindGroup,
   bindGroup2?: RenderBindGroup,

@@ -37,6 +37,7 @@ class Renderer {
   limits: GPUSupportedLimits;
   cameraPos: [number, number, number] = [0, 0, -300];
   pipelines: Array<RenderPipeline> = [];
+  textures: Array<GPUTexture>= [];
   clearColor: GPUColorDict = { r:0, g:0, b:0, a:1 };
 
   constructor(d:GPUDevice, f:GPUTextureFormat, c:GPUCanvasContext, m:GPUTexture, z:GPUTexture, w:number, h:number) {
@@ -94,11 +95,59 @@ class Renderer {
       canvas.height,
     );
   }
-  // load image bitmap
-  async loadTexture(url: string): Promise<ImageBitmap> {
+  // create texture buff
+  async addTexture(width: number, height: number, url?: string, canvasFormat?: boolean): Promise<number> {
+    const id = this.textures.length;
+    const texture: GPUTexture = this.#device.createTexture({
+      label: `texture-cache-${id}`,
+      format: canvasFormat ? this.#format : 'rgba8unorm',
+      size: [width, height],
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    // load image from url if provided
+    if (url) {
+      const blob = await fetch(url).then(x => x.blob());
+      const bitmap: ImageBitmap = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
+      this.#device.queue.copyExternalImageToTexture(
+        { source: bitmap, flipY: true },
+        { texture: texture },
+        { width: bitmap.width, height: bitmap.height }
+      );
+    }
+    // add to cache
+    this.textures.push(texture);
+    return id;
+  }
+  // swap out texture for a new one (note: cannot change size)
+  async updateTexture(textureId:number, url: string) {
+    const texture = this.textures[textureId];
+    if (!texture) throw new Error(`Could not find texture ${textureId}`);
     const blob = await fetch(url).then(x => x.blob());
     const bitmap: ImageBitmap = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
-    return bitmap;
+    this.#device.queue.copyExternalImageToTexture(
+      { source: bitmap, flipY: true },
+      { texture: texture },
+      { width: texture.width, height: texture.height }
+    );
+  }
+  // replace texture and associated bindgroup
+  updateTextureSize(textureId:number, pipelineId:number, width:number, height:number, canvasFormat?: boolean) {
+    const old = this.textures[textureId];
+    if (!old) throw new Error(`Could not find texture ${textureId}`);
+    old.destroy();
+    // create new texture
+    const texture: GPUTexture = this.#device.createTexture({
+      label: `texture-cache-${textureId}`,
+      format: canvasFormat ? this.#format : 'rgba8unorm',
+      size: [width, height],
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    this.textures[textureId] = texture;
+    // update bind group
+    const pipeline = this.pipelines[pipelineId];
+    if (!pipeline) throw new Error(`Could not find pipeline ${pipelineId}`);
+    const newGroup = this.addBindGroup(pipeline.pipe, pipeline.maxObjCount, texture);
+    pipeline.bindGroup0 = newGroup;
   }
   // change clear color
   updateClearRGB(r: number, g: number, b: number, a?: number) {
@@ -145,9 +194,11 @@ class Renderer {
    * 
    * @param {string} shader wgsl shader as a string
    * @param {number} maxObjCount keep low to minimize memory consumption
+   * @param {number} textureId texture must be added to cache, then referenced here
+   * @param {GPUCullMode} cullMode ['front','back','none'] affects transparency
    * @returns {number} pipeline id (required for creating render objects)
    */
-  addPipeline(shader:string, maxObjCount:number, bitmap?: ImageBitmap): number {
+  addPipeline(shader:string, maxObjCount:number, textureId?:number, cullMode:GPUCullMode='none'): number {
     if (!this.#device) throw new Error("Renderer not initialized");
     const shaderModule: GPUShaderModule = this.#device.createShaderModule({
       label: "shader-module",
@@ -216,23 +267,26 @@ class Renderer {
         depthWriteEnabled: true,
         depthCompare: 'less-equal',
       },
-      // primitive: {
-      //   cullMode: 'back' // culls back-facing tris, breaks self-transparency
-      // }
+      primitive: {
+        cullMode: cullMode
+      }
     });
     // create bind group
-    const bindGroup = this.addBindGroup(pipeline, maxObjCount, bitmap);
+    let tx;
+    if (typeof textureId === 'number') tx = this.textures[textureId];
+    const bindGroup = this.addBindGroup(pipeline, maxObjCount, tx);
     // add to cache
     const pipe: RenderPipeline = {
       pipe: pipeline,
       objects: [],
+      maxObjCount,
       bindGroup0: bindGroup,
     };
     this.pipelines.push(pipe);
     return (this.pipelines.length - 1);
   }
   // create bind group
-  addBindGroup(pipeline: GPURenderPipeline, maxObjCount:number, bitmap?: ImageBitmap): RenderBindGroup {
+  addBindGroup(pipeline: GPURenderPipeline, maxObjCount:number, texture?:GPUTexture): RenderBindGroup {
     // create uniform buffers
     const minStrideSize: number = this.limits.minUniformBufferOffsetAlignment;
     const mvpBuffer: GPUBuffer = this.#device.createBuffer({
@@ -240,19 +294,14 @@ class Renderer {
       size: minStrideSize * maxObjCount,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
-    // create texture
-    const texture: GPUTexture = this.#device.createTexture({
-      label: 'texture-input',
-      format: 'rgba8unorm',
-      size: [bitmap?.width ?? this.#width, bitmap?.height ?? this.#height],
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    if (bitmap) {
-      this.#device.queue.copyExternalImageToTexture(
-        { source: bitmap, flipY: true },
-        { texture },
-        { width: bitmap.width, height: bitmap.height }
-      );
+    // placeholder texture
+    if (!texture) {
+      texture = this.#device.createTexture({
+        label: `texture-cache-placeholder`,
+        format: 'rgba8unorm',
+        size: [10, 10],
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+      });
     }
     // create sampler
     const sampler: GPUSampler = this.#device.createSampler({
@@ -282,7 +331,6 @@ class Renderer {
     const out: RenderBindGroup = {
       base: bindGroup,
       entries: [mvpBuffer],
-      texture: texture
     }
     return out;
   }
@@ -292,7 +340,6 @@ class Renderer {
     verts: Array<[number, number, number]>,
     uvs?: Array<[number, number]>,
     normals?: Array<[number, number, number]>,
-    customBind?: boolean,
   ): number {
     if (!this.#device) throw new Error("Renderer not initialized");
     if (verts.length < 3) throw new Error("Not enough vertices");
@@ -350,12 +397,6 @@ class Renderer {
       vertexCount: vlen,
       pipelineIndex: id,
     }
-    // custom bind group
-    if (customBind) {
-      const pipeline = this.pipelines[pipelineId];
-      const bind = this.addBindGroup(pipeline.pipe, 1);
-      obj.customBindGroup = bind;
-    }
     pipe.objects.push(obj);
     this.updateObject({ pipelineId, objectId:id });
     return id;
@@ -394,37 +435,26 @@ class Renderer {
     }
     const stride = this.limits.minStorageBufferOffsetAlignment;
     this.#device.queue.writeBuffer(dpipe.bindGroup0.entries[0], stride * obj.pipelineIndex, mvp);
-    if (obj.customBindGroup?.entries && obj.customBindGroup?.texture) {
-      // TODO: not working
-      const encoder: GPUCommandEncoder = this.#device.createCommandEncoder({ label: "debug-encoder" });
-      const buffer: GPUBuffer = this.#device.createBuffer({
-        label: "depth-transfer-buffer",
-        size: 512 * 512 * 4,
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
-      });
-      encoder.copyTextureToBuffer(
-        { texture: this.#zbuffer },
-        { buffer, bytesPerRow: 512 * 4 },
-        { width: this.#zbuffer.width, height: this.#zbuffer.height }
-      );
-      encoder.copyBufferToTexture(
-        { buffer, bytesPerRow: 512 * 4 },
-        { texture: obj.customBindGroup.texture },
-        { width: 512, height: 512 }
-      )
-      this.#device.queue.submit([encoder.finish()]);
-    }
   }
   // render to canvas
-  draw() {
+  draw(pipelineIds: Array<number>, targetId?: number) {
     if (!this.#device) throw new Error("Renderer not initialized");
+    let t = this.#context.getCurrentTexture().createView();
+    if (targetId) {
+      const tx = this.textures[targetId];
+      if (tx) {
+        t = tx.createView();
+      } else {
+        console.warn(`Could not find render target ${targetId}. Rendering to screen`);
+      }
+    }
     // create new command encoder (consumed at the end)
     const encoder: GPUCommandEncoder = this.#device.createCommandEncoder({ label: "draw-encoder" });
     const pass: GPURenderPassEncoder = encoder.beginRenderPass({
       label: "draw-pass",
       colorAttachments: [{
         view: this.#msaa.createView(),
-        resolveTarget: this.#context.getCurrentTexture().createView(),
+        resolveTarget: t,
         clearValue: this.clearColor,
         loadOp: "clear",
         storeOp: "store",
@@ -436,8 +466,12 @@ class Renderer {
         depthStoreOp: "store",
       }
     });
-    this.pipelines.forEach(pipeline => {
-      if (pipeline.objects.length < 1) return;
+    pipelineIds.forEach(id => {
+      const pipeline = this.pipelines[id];
+      if (!pipeline) {
+        console.warn(`Pipeline not found: ${id}`);
+        return;
+      }
       pipeline.objects.forEach(obj => {
         if (!obj.visible) return;
         const stride = this.limits.minUniformBufferOffsetAlignment;
@@ -445,11 +479,10 @@ class Renderer {
         pass.setVertexBuffer(0, obj.vertexBuffer);
         pass.setVertexBuffer(1, obj.uvBuffer);
         pass.setVertexBuffer(2, obj.normalBuffer);
-        if (obj.customBindGroup) pass.setBindGroup(0, obj.customBindGroup.base, [0]);
-        else pass.setBindGroup(0, pipeline.bindGroup0.base, [stride * obj.pipelineIndex]);
+        pass.setBindGroup(0, pipeline.bindGroup0.base, [stride * obj.pipelineIndex]);
         pass.draw(obj.vertexCount);
       });
-    })
+    });
     pass.end();
     this.#device.queue.submit([encoder.finish()]);
   }
