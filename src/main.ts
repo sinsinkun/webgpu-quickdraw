@@ -107,7 +107,7 @@ async function main() {
       }
     });
     // start with animation on
-    // btn2?.click();
+    btn2?.click();
   
   } catch (err) {
     console.log(err);
