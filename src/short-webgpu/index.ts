@@ -11,7 +11,6 @@ export interface RenderObject {
   normalBuffer: GPUBuffer,
   vertexCount: number,
   pipelineIndex: number,
-  pipelineOffset: number,
   customBindGroup?: RenderBindGroup,
 }
 
@@ -25,6 +24,7 @@ export interface RenderBindGroup {
 // render pipeline information
 export interface RenderPipeline {
   pipe: GPURenderPipeline,
+  objects: Array<RenderObject>,
   bindGroup0: RenderBindGroup,
   bindGroup1?: RenderBindGroup,
   bindGroup2?: RenderBindGroup,
@@ -39,7 +39,8 @@ export interface Shape {
 }
 
 export interface UpdateData {
-  id: number,
+  pipelineId: number,
+  objectId: number,
   translate?: [number, number, number],
   rotateAxis?: [number, number, number],
   rotateDeg?: number,

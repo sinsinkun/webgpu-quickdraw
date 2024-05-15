@@ -37,7 +37,6 @@ class Renderer {
   limits: GPUSupportedLimits;
   cameraPos: [number, number, number] = [0, 0, -300];
   pipelines: Array<RenderPipeline> = [];
-  objects: Array<RenderObject> = [];
   clearColor: GPUColorDict = { r:0, g:0, b:0, a:1 };
 
   constructor(d:GPUDevice, f:GPUTextureFormat, c:GPUCanvasContext, m:GPUTexture, z:GPUTexture, w:number, h:number) {
@@ -226,6 +225,7 @@ class Renderer {
     // add to cache
     const pipe: RenderPipeline = {
       pipe: pipeline,
+      objects: [],
       bindGroup0: bindGroup,
     };
     this.pipelines.push(pipe);
@@ -288,7 +288,7 @@ class Renderer {
   }
   // create buffers for render object
   addObject(
-    pipelineIndex: number,
+    pipelineId: number,
     verts: Array<[number, number, number]>,
     uvs?: Array<[number, number]>,
     normals?: Array<[number, number, number]>,
@@ -340,34 +340,35 @@ class Renderer {
     });
     this.#device.queue.writeBuffer(normalBuffer, 0, normalMap);
     // save to cache
-    const id = this.objects.length;
+    const pipe = this.pipelines[pipelineId];
+    const id = pipe.objects.length;
     const obj: RenderObject = {
       visible: true,
       vertexBuffer,
       uvBuffer,
       normalBuffer,
       vertexCount: vlen,
-      pipelineIndex,
-      pipelineOffset: id,
+      pipelineIndex: id,
     }
     // custom bind group
     if (customBind) {
-      const pipeline = this.pipelines[pipelineIndex];
+      const pipeline = this.pipelines[pipelineId];
       const bind = this.addBindGroup(pipeline.pipe, 1);
       obj.customBindGroup = bind;
     }
-    this.objects.push(obj);
-    this.updateObject({ id });
+    pipe.objects.push(obj);
+    this.updateObject({ pipelineId, objectId:id });
     return id;
   }
   // update buffers for render object
   updateObject(input: UpdateData) {
-    const { id, translate, visible, rotateAxis, rotateDeg, scale, camera } = input;
+    const { pipelineId, objectId, translate, visible, rotateAxis, rotateDeg, scale, camera } = input;
     if (!this.#device) throw new Error("Renderer not initialized");
-    const obj = this.objects[id];
-    if (!obj) throw new Error(`Could not find object ${id}`);
-    const dpipe = this.pipelines[obj.pipelineIndex];
-    if (!dpipe) throw new Error(`Could not find pipeline ${obj.pipelineIndex}`);
+    const dpipe = this.pipelines[pipelineId];
+    if (!dpipe) throw new Error(`Could not find pipeline ${pipelineId}`);
+    const obj = dpipe.objects[objectId];
+    if (!obj) throw new Error(`Could not find object ${objectId}`);
+    
     obj.visible = visible ?? true;
     // model matrix
     const modelt: Float32Array = Mat4.translate(translate?.[0] || 0, translate?.[1] || 0, translate?.[2] || 0);
@@ -392,7 +393,7 @@ class Renderer {
       else mvp[i] = proj[i - mat4Size*2];
     }
     const stride = this.limits.minStorageBufferOffsetAlignment;
-    this.#device.queue.writeBuffer(dpipe.bindGroup0.entries[0], stride * obj.pipelineOffset, mvp);
+    this.#device.queue.writeBuffer(dpipe.bindGroup0.entries[0], stride * obj.pipelineIndex, mvp);
     if (obj.customBindGroup?.entries && obj.customBindGroup?.texture) {
       // TODO: not working
       const encoder: GPUCommandEncoder = this.#device.createCommandEncoder({ label: "debug-encoder" });
@@ -435,17 +436,19 @@ class Renderer {
         depthStoreOp: "store",
       }
     });
-    this.objects.forEach(obj => {
-      if (!obj.visible) return;
-      const pipeline = this.pipelines[obj.pipelineIndex];
-      const stride = this.limits.minUniformBufferOffsetAlignment;
-      pass.setPipeline(pipeline.pipe);
-      pass.setVertexBuffer(0, obj.vertexBuffer);
-      pass.setVertexBuffer(1, obj.uvBuffer);
-      pass.setVertexBuffer(2, obj.normalBuffer);
-      if (obj.customBindGroup) pass.setBindGroup(0, obj.customBindGroup.base, [0]);
-      else pass.setBindGroup(0, pipeline.bindGroup0.base, [stride * obj.pipelineOffset]);
-      pass.draw(obj.vertexCount);
+    this.pipelines.forEach(pipeline => {
+      if (pipeline.objects.length < 1) return;
+      pipeline.objects.forEach(obj => {
+        if (!obj.visible) return;
+        const stride = this.limits.minUniformBufferOffsetAlignment;
+        pass.setPipeline(pipeline.pipe);
+        pass.setVertexBuffer(0, obj.vertexBuffer);
+        pass.setVertexBuffer(1, obj.uvBuffer);
+        pass.setVertexBuffer(2, obj.normalBuffer);
+        if (obj.customBindGroup) pass.setBindGroup(0, obj.customBindGroup.base, [0]);
+        else pass.setBindGroup(0, pipeline.bindGroup0.base, [stride * obj.pipelineIndex]);
+        pass.draw(obj.vertexCount);
+      });
     })
     pass.end();
     this.#device.queue.submit([encoder.finish()]);

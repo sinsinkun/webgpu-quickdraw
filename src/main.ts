@@ -1,6 +1,7 @@
 import { Renderer, Primitives } from './short-webgpu';
 import type { CameraType } from './short-webgpu';
-import shader from './basic.wgsl?raw';
+import shader1 from './basic.wgsl?raw';
+import shader2 from "./showtx.wgsl?raw";
 
 // get HTML elements
 const canvas: HTMLCanvasElement | null = document.getElementById("canvas") as HTMLCanvasElement;
@@ -28,8 +29,8 @@ async function main() {
     let raxis: [number, number, number] = [1, 0.6, 0.3];
     // create pipeline
     let bitmap1: ImageBitmap = await renderer.loadTexture(import.meta.env.BASE_URL + '/logo.png');
-    const pipe1 = renderer.addPipeline(shader, 10, bitmap1);
-    const pipe2 = renderer.addPipeline(shader, 100);
+    const pipe1 = renderer.addPipeline(shader2, 10, bitmap1);
+    const pipe2 = renderer.addPipeline(shader1, 100, bitmap1);
     
     // create pcamera
     const pcam: CameraType = {
@@ -39,13 +40,9 @@ async function main() {
       far: 1000,
     }
     // create objects
-    const rect = Primitives.rect(300, 300);
-    rect.normals = [
-      [-1,-1,0],[0,-1,-1],[0,0,-1],
-      [0,0,-1],[-1,0,-1],[-1,-1,0],
-    ]
-    renderer.addObject(pipe1, rect.vertices, rect.uvs, rect.normals);
-    for (let i=1; i<100; i++) {
+    const poly = Primitives.regPolygon(250, 8);
+    const polyId = renderer.addObject(pipe1, poly.vertices, poly.uvs, poly.normals);
+    for (let i=0; i<99; i++) {
       const size = 20 + (i%7) * 5;
       const cube = Primitives.cube(size, size, size);
       renderer.addObject(pipe2, cube.vertices, cube.uvs, cube.normals);
@@ -55,16 +52,19 @@ async function main() {
       // update properties
       if (!redraw) rot += 2;
       renderer.updateObject({
-        id: 0, 
+        pipelineId: pipe1,
+        objectId: polyId, 
         translate: [0, 0, -50],
-        rotateDeg: rot * 0.05,
+        rotateAxis: [0, 0, 1],
+        rotateDeg: rot * 0.2,
         camera: pcam
       });
       for (let i=0; i<10; i++) {
         for (let j=0; j<10; j++) {
-          if (i === 0 && j === 0) continue;
+          if (i === 9 && j === 9) continue;
           renderer.updateObject({
-            id: i*10 + j,
+            pipelineId: pipe2,
+            objectId: i*10 + j,
             translate: [
               250 - i * 50, 
               50 * Math.sin(i + j * 0.5 + rot * 0.01) + 50 * j - 250, 
@@ -106,6 +106,8 @@ async function main() {
         log("Resized canvas");
       }
     });
+    // start with animation on
+    // btn2?.click();
   
   } catch (err) {
     console.log(err);

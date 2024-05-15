@@ -32,12 +32,9 @@ fn vertexMain(input: VertIn) -> VertOut {
 
 @fragment
 fn fragmentMain(input: VertOut) -> @location(0) vec4f {
-  let n = (1.0 + input.normal) / 2.0;
-  // let txCoords = vec2i(input.uv * 512);
-  // var tx = textureLoad(texture, txCoords, 0);
   var tx = textureSample(texture, txSampler, input.uv);
-  if (tx.a < 0.0001) {
-    tx = vec4f(n, 0.6);
+  if (tx.a < 0.1) {
+    discard;
   }
   return tx;
 }

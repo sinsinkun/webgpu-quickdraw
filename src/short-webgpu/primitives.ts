@@ -81,6 +81,35 @@ class Primitives {
     ];
     return { vertices, uvs, normals }
   }
+  static regPolygon(radius:number, sides:number, zIndex:number = 0): Shape {
+    if (sides < 2) throw new Error("Sides count must be greater than 2");
+    const vertices: Array<[number, number, number]> = [];
+    const uvs: Array<[number, number]> = [];
+    const normals: Array<[number, number, number]> = [];
+    const da = 2 * Math.PI / sides;
+    let x0 = 1, y0 = 0;
+    for (let i=0; i<sides; i++) {
+      let x1 = Math.cos(da) * x0 - Math.sin(da) * y0;
+      let y1 = Math.cos(da) * y0 + Math.sin(da) * x0;
+      x1 = 0 + Number(x1.toFixed(6));
+      y1 = 0 + Number(y1.toFixed(6));
+      // build slice
+      const p1: [number, number, number] = [x0 * radius, y0 * radius, zIndex];
+      const p2: [number, number, number] = [x1 * radius, y1 * radius, zIndex];
+      const p3: [number, number, number] = [0, 0, zIndex];
+      const u1: [number, number] = [(1 + x0)/2, (1 + y0)/2];
+      const u2: [number, number] = [(1 + x1)/2, (1 + y1)/2];
+      const u3: [number, number] = [0.5, 0.5];
+      // build arrays
+      vertices.push(p1, p2, p3);
+      uvs.push(u1, u2, u3);
+      normals.push([0,0,1],[0,0,1],[0,0,1]);
+      // prepare next slice
+      x0 = x1;
+      y0 = y1;
+    }
+    return { vertices, uvs, normals };
+  }
 }
 
 export default Primitives;
