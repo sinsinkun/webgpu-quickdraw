@@ -1,5 +1,5 @@
 import { Renderer, Primitives } from './short-webgpu';
-import type { CameraType } from './short-webgpu';
+import type { Camera } from './short-webgpu';
 import shader1 from './basic.wgsl?raw';
 import shader2 from "./showtx.wgsl?raw";
 
@@ -37,12 +37,8 @@ async function main() {
     const pipe2 = renderer.addPipeline(shader1, 100, tx1);
     
     // create pcamera
-    const pcam: CameraType = {
-      type: "persp",
-      fovY: 80,
-      near: 1,
-      far: 1000,
-    }
+    const cam1: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,-300] });
+    const cam2: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,-200] });
     // create objects
     const poly = Primitives.regPolygon(250, 32);
     const polyId = renderer.addObject(pipe1, poly.vertices, poly.uvs, poly.normals);
@@ -61,7 +57,7 @@ async function main() {
         translate: [0, 0, -100],
         rotateAxis: [0, 1, 0],
         rotateDeg: rot * 0.2,
-        camera: pcam
+        camera: cam2
       });
       for (let i=0; i<10; i++) {
         for (let j=0; j<10; j++) {
@@ -76,14 +72,14 @@ async function main() {
             ],
             rotateAxis: raxis,
             rotateDeg: rot,
-            camera: pcam
+            camera: cam1
           });
         }
       }
       // render to texture
       renderer.draw([pipe2], tx2);
       // render to canvas
-      renderer.draw([pipe1]);
+      renderer.draw([pipe1, pipe2]);
     }
     update(true);
     log("Drew to canvas");

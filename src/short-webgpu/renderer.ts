@@ -4,6 +4,8 @@ import type {
   RenderBindGroup,
   RenderPipeline,
   UpdateData,
+  Camera,
+  CameraOptions,
 } from './index';
 
 /**
@@ -35,7 +37,6 @@ class Renderer {
   #height: number;
   // public properties
   limits: GPUSupportedLimits;
-  cameraPos: [number, number, number] = [0, 0, -300];
   pipelines: Array<RenderPipeline> = [];
   textures: Array<GPUTexture>= [];
   clearColor: GPUColorDict = { r:0, g:0, b:0, a:1 };
@@ -94,6 +95,32 @@ class Renderer {
       canvas.width,
       canvas.height,
     );
+  }
+  // helper for making cameras
+  makeCamera(type: "ortho" | "persp", options?: CameraOptions): Camera {
+    switch (type) {
+      case "ortho":
+        return {
+          type, 
+          near: options?.near || 0, 
+          far: options?.far || 1000,
+          translate: options?.translate || [0,0,-100],
+          rotateAxis: options?.rotateAxis || [0,0,1],
+          rotateDeg: options?.rotateDeg || 0
+        };
+      case "persp":
+        return {
+          type,
+          fovY: options?.fovY || 60,
+          near: options?.near || 1, 
+          far: options?.far || 1000,
+          translate: options?.translate || [0,0,-100],
+          rotateAxis: options?.rotateAxis || [0,0,1],
+          rotateDeg: options?.rotateDeg || 0
+        };
+      default:
+        throw new Error(`Invalid camera type \"${type}\"`);
+    }
   }
   // create texture buff
   async addTexture(width: number, height: number, url?: string, canvasFormat?: boolean): Promise<number> {
@@ -180,12 +207,6 @@ class Renderer {
     this.#zbuffer = zbufferTexture;
     this.#width = w;
     this.#height = h;
-  }
-  // change camera position
-  updateCamera(x: number, y: number, z: number) {
-    this.cameraPos[0] = x;
-    this.cameraPos[1] = y;
-    this.cameraPos[2] = z;
   }
   /**
    * Creates rendering pipeline to feed render objects into
@@ -417,13 +438,18 @@ class Renderer {
     const models: Float32Array = Mat4.scale(scale?.[0] || 1, scale?.[1] || 1, scale?.[2] || 1);
     const model: Float32Array = Mat4.multiply(modelt, Mat4.multiply(modelr, models));
     // view matrix
-    const view: Float32Array = Mat4.translate(this.cameraPos[0], this.cameraPos[1], this.cameraPos[2]);
+    let view: Float32Array = Mat4.identity();
+    if (camera) {
+      const viewt = Mat4.translate(camera.translate[0], camera.translate[1], camera.translate[2]);
+      const viewr = Mat4.rotate(camera.rotateAxis, camera.rotateDeg * Math.PI / 180);
+      view = Mat4.multiply(viewt, viewr);
+    }
     // projection matrix
     const w2 = this.#width/2;
     const h2 = this.#height/2;
     let proj: Float32Array;
     if (camera?.type === "persp") proj = Mat4.perspective(camera.fovY, w2/h2, camera.near, camera.far);
-    else proj = Mat4.ortho(-w2, w2, -h2, h2);
+    else proj = Mat4.ortho(-w2, w2, -h2, h2, camera?.near, camera?.far);
     // join everything together
     const mat4Size: number = 4 * 4;
     const mvpSize: number = 4 * 4 * 3; // mat4 32bit/4byte floats

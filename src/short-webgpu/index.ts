@@ -45,12 +45,34 @@ export interface UpdateData {
   rotateDeg?: number,
   scale?: [number, number, number],
   visible?: boolean,
-  camera?: CameraType,
+  camera?: Camera,
 }
 
 // camera information
-export type CameraType = { type: "ortho" } | {
-  type: "persp", fovY: number, near: number, far: number,
-};
+interface CameraTransform {
+  translate: [number, number, number],
+  rotateAxis: [number, number, number],
+  rotateDeg: number,
+}
+interface OrthoCamera {
+  type: "ortho",
+  near: number,
+  far: number,
+}
+interface PerspCamera {
+  type: "persp",
+  fovY: number,
+  near: number,
+  far: number,
+}
+export interface CameraOptions {
+  fovY?: number,
+  near?: number,
+  far?: number,
+  translate?: [number, number, number],
+  rotateAxis?: [number, number, number],
+  rotateDeg?: number,
+}
+export type Camera = CameraTransform & (OrthoCamera | PerspCamera);
 
 export { Primitives, Mat4, Vec, Renderer };
