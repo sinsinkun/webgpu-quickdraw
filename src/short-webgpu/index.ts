@@ -51,8 +51,8 @@ export interface UpdateData {
 // camera information
 interface CameraTransform {
   translate: [number, number, number],
-  rotateAxis: [number, number, number],
-  rotateDeg: number,
+  lookAt: [number, number, number],
+  up: [number, number, number],
 }
 interface OrthoCamera {
   type: "ortho",
@@ -70,8 +70,8 @@ export interface CameraOptions {
   near?: number,
   far?: number,
   translate?: [number, number, number],
-  rotateAxis?: [number, number, number],
-  rotateDeg?: number,
+  lookAt?: [number, number, number],
+  up?: [number, number, number],
 }
 export type Camera = CameraTransform & (OrthoCamera | PerspCamera);
 

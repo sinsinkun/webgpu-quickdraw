@@ -37,8 +37,8 @@ async function main() {
     const pipe2 = renderer.addPipeline(shader1, 100, tx1);
     
     // create pcamera
-    const cam1: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,-300] });
-    const cam2: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,-200] });
+    const cam1: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,300] });
+    const cam2: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,200] });
     // create objects
     const poly = Primitives.regPolygon(250, 32);
     const polyId = renderer.addObject(pipe1, poly.vertices, poly.uvs, poly.normals);

@@ -101,22 +101,22 @@ class Renderer {
     switch (type) {
       case "ortho":
         return {
-          type, 
-          near: options?.near || 0, 
+          type,
+          near: options?.near || 0,
           far: options?.far || 1000,
-          translate: options?.translate || [0,0,-100],
-          rotateAxis: options?.rotateAxis || [0,0,1],
-          rotateDeg: options?.rotateDeg || 0
+          translate: options?.translate || [0,0,100],
+          lookAt: options?.lookAt || [0.0, 0.0, 0.0],
+          up: options?.up || [0.0, 1.0, 0.0],
         };
       case "persp":
         return {
           type,
           fovY: options?.fovY || 60,
-          near: options?.near || 1, 
+          near: options?.near || 1,
           far: options?.far || 1000,
-          translate: options?.translate || [0,0,-100],
-          rotateAxis: options?.rotateAxis || [0,0,1],
-          rotateDeg: options?.rotateDeg || 0
+          translate: options?.translate || [0,0,100],
+          lookAt: options?.lookAt || [0.0, 0.0, 0.0],
+          up: options?.up || [0.0, 1.0, 0.0],
         };
       default:
         throw new Error(`Invalid camera type \"${type}\"`);
@@ -440,8 +440,11 @@ class Renderer {
     // view matrix
     let view: Float32Array = Mat4.identity();
     if (camera) {
-      const viewt = Mat4.translate(camera.translate[0], camera.translate[1], camera.translate[2]);
-      const viewr = Mat4.rotate(camera.rotateAxis, camera.rotateDeg * Math.PI / 180);
+      const pos = new Float32Array(camera.translate);
+      const lookAt = new Float32Array(camera.lookAt);
+      const up = new Float32Array(camera.up);
+      const viewt = Mat4.translate(-camera.translate[0], -camera.translate[1], -camera.translate[2]);
+      const viewr = Mat4.view_rot(pos, lookAt, up);
       view = Mat4.multiply(viewt, viewr);
     }
     // projection matrix

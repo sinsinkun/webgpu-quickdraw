@@ -1,3 +1,5 @@
+import { Vec } from './index';
+
 /**
  * Container for util functions for matrix math
  * 
@@ -176,6 +178,19 @@ class Mat4 {
       }
     }
     return dst;
+  }
+  // camera rotation look at matrix
+  static view_rot(cam: Float32Array, target: Float32Array, up: Float32Array): Float32Array {
+    const fwd = Vec.normalize(Vec.subtract(cam, target));
+    const right = Vec.normalize(Vec.cross(up, fwd));
+    const newUp = Vec.normalize(Vec.cross(fwd, right));
+
+    return new Float32Array([
+      right[0], newUp[0], fwd[0], 0.0,
+      right[1], newUp[1], fwd[1], 0.0,
+      right[2], newUp[2], fwd[2], 0.0,
+      0.0, 0.0, 0.0, 1.0
+    ]);
   }
 }
 
