@@ -436,7 +436,7 @@ class Renderer {
     const modelt: Float32Array = Mat4.translate(translate?.[0] || 0, translate?.[1] || 0, translate?.[2] || 0);
     const modelr: Float32Array = Mat4.rotate(rotateAxis || [0,0,1], (rotateDeg || 0) * Math.PI / 180);
     const models: Float32Array = Mat4.scale(scale?.[0] || 1, scale?.[1] || 1, scale?.[2] || 1);
-    const model: Float32Array = Mat4.multiply(modelt, Mat4.multiply(modelr, models));
+    const model: Float32Array = Mat4.multiply(modelt, Mat4.multiply(models, modelr));
     // view matrix
     let view: Float32Array = Mat4.identity();
     if (camera) {
