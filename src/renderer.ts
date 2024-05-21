@@ -7,6 +7,7 @@ import type {
   Camera,
   CameraOptions,
 } from './index';
+import "@webgpu/types";
 
 /**
  * ## Renderer

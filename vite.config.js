@@ -2,9 +2,9 @@ import { defineConfig } from 'vite';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/vite-webgpu',
+  base: '/webgpu-simplified',
   build: {
-    outDir: 'build',
+    outDir: 'vite-build',
   },
   server: {
     port: 3001

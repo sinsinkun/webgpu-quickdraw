@@ -6,7 +6,7 @@
   "main": "build/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc src/index.ts --outDir build"
+    "build": "tsc --project src"
   },
   "keywords": [
     "webgpu",
@@ -15,10 +15,9 @@
   ],
   "author": "sinsinkun",
   "license": "ISC",
-  "dependencies": {
-    "@webgpu/types": "^0.1.40"
-  },
+  "files": ["src", "package.json", "README.md"],
   "devDependencies": {
+    "@webgpu/types": "^0.1.40",
     "typescript": "^5.2.2",
     "vite": "^5.2.0"
   }
