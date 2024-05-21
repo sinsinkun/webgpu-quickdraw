@@ -8,7 +8,35 @@ without completely abstracting away the WebGPU architecture.
 
 Some utility functions are included (like primitive shapes) for ease of use.
 
-Features:
+### Usage:
+
+All WebGPU configurations have been reduced to the absolute lowest possible number of lines.
+
+```js
+import { Renderer, Primitive } from 'webgpu-quickdraw';
+const canvas = document.querySelector('#canvas');
+
+// initialize WebGPU connection to GPU
+const renderer = await Renderer.init(canvas);
+
+// create new pipeline
+const pipe1 = renderer.addPipeline(shader);
+
+// create new object
+const shape = Primitive.cube(20, 20, 20);
+const obj1 = renderer.addObject(pipe1, shape.vertices, shape.uvs, shape.normals);
+
+// update object
+renderer.updateObject({ pipelineId: pipe1, objectId: obj1, position: [0, 10, 0]});
+
+// render to canvas
+renderer.render([pipe1]);
+```
+
+Note: Primitives is only to help generate the vertex, uv, and normal arrays.
+It does not retain any information regarding the output shape.
+
+### Features:
 - support for reusing pipelines
 - support for canvas resizing
 - multiple render objects
@@ -21,7 +49,7 @@ Features:
 - intakes texture for uv mapping
 - can output into textures for post processing
 
-To-do:
+### To-do:
 - custom uniform implementation
 - more primitive shapes
 - 3d model importing

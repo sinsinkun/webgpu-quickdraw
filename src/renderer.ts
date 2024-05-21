@@ -26,7 +26,7 @@ import type {
  * const obj1 = renderer.addObject(pipe1, shape.vertices, shape.uvs, shape.normals);
  * renderer.updateObject({ pipelineId: pipe1, objectId: obj1, position: [0, 10, 0]});
  * 
- * renderer.render();
+ * renderer.render([pipe1]);
  * ```
  */
 class Renderer {
