@@ -26,11 +26,11 @@ To-do:
 - more primitive shapes
 - 3d model importing
 
-<img src="public/screenshot2.png" width="600px" />
+<img src="https://sinsinkun.github.io/webgpu-quickdraw/screenshot2.png" width="600px" />
 
 Transparency, MSAA, depth buffer, and texture mapping pre-included
 
-<img src="public/screenshot.png" width="700px" />
+<img src="https://sinsinkun.github.io/webgpu-quickdraw/screenshot.png" width="700px" />
 
 1000 cubes renders with 2ms GPU computation time
 
