@@ -20,7 +20,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Build release version
-        run: npm run build
+        run: npm run vite-build
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:

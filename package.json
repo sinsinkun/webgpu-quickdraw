@@ -6,7 +6,8 @@
   "main": "build/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --project src"
+    "build": "tsc --project src",
+    "vite-build": "vite build"
   },
   "keywords": [
     "webgpu",
