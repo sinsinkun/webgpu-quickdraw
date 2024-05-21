@@ -1,3 +1,6 @@
+// note: unable to import webgpu types using tsconfig in subfolder
+/// <reference path="../node_modules/@webgpu/types/dist/index.d.ts" />
+
 import { Mat4 } from "./index";
 import type {
   RenderObject,
@@ -7,7 +10,6 @@ import type {
   Camera,
   CameraOptions,
 } from './index';
-import "@webgpu/types";
 
 /**
  * ## Renderer
