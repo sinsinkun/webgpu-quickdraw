@@ -18,7 +18,7 @@ import type {
  * 
  * ### Usage:
  * ```js
- * import { Renderer, Primitive } from 'basic-webgpu';
+ * import { Renderer, Primitive } from 'webgpu-quickdraw';
  * 
  * const renderer = await Renderer.init(canvas);
  * const pipe1 = renderer.addPipeline2D(shader);

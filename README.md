@@ -1,6 +1,12 @@
-# WebGPU Simplified
+# WebGPU Quickdraw
 
 Custom renderer library for simplifying working with WebGPU.
+
+The goal of this library is to dramatically reduce the setup time required
+to start using WebGPU by pre-including common requirements for graphics setups,
+without completely abstracting away the WebGPU architecture.
+
+Some utility functions are included (like primitive shapes) for ease of use.
 
 Features:
 - support for reusing pipelines
@@ -22,7 +28,7 @@ To-do:
 
 <img src="public/screenshot2.png" width="600px" />
 
-Transparency, MSAA, depth buffer, and texture mapping pre-built
+Transparency, MSAA, depth buffer, and texture mapping pre-included
 
 <img src="public/screenshot.png" width="700px" />
 

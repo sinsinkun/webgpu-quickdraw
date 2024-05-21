@@ -1,9 +1,10 @@
 {
-  "name": "webgpu-simplified",
-  "description": "Simplified interface for webgpu for browser usage",
+  "name": "webgpu-quickdraw",
+  "description": "Simplified interface for webgpu for drawing to a canvas, quick and easy to use.",
   "version": "0.1.0",
   "type": "module",
   "main": "build/index.js",
+  "types": "build/index.d.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc --project src",
@@ -12,11 +13,12 @@
   "keywords": [
     "webgpu",
     "simplified",
-    "basic"
+    "quickdraw",
+    "canvas"
   ],
   "author": "sinsinkun",
   "license": "ISC",
-  "files": ["src", "package.json", "README.md"],
+  "files": ["build", "package.json", "LICENSE", "README.md"],
   "devDependencies": {
     "@webgpu/types": "^0.1.40",
     "typescript": "^5.2.2",
