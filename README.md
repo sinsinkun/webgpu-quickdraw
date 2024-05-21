@@ -1,6 +1,6 @@
-# WebGPU on Vite
+# WebGPU Simplified
 
-Custom renderer object implementation for simplifying working with WebGPU.
+Custom renderer library for simplifying working with WebGPU.
 
 Features:
 - support for reusing pipelines
@@ -14,6 +14,11 @@ Features:
 - intakes normal buffer for VBO
 - intakes texture for uv mapping
 - can output into textures for post processing
+
+To-do:
+- custom uniform implementation
+- more primitive shapes
+- 3d model importing
 
 <img src="public/screenshot2.png" width="600px" />
 

@@ -466,7 +466,7 @@ class Renderer {
     this.#device.queue.writeBuffer(dpipe.bindGroup0.entries[0], stride * obj.pipelineIndex, mvp);
   }
   // render to canvas
-  draw(pipelineIds: Array<number>, targetId?: number) {
+  render(pipelineIds: Array<number>, targetId?: number) {
     if (!this.#device) throw new Error("Renderer not initialized");
     let t = this.#context.getCurrentTexture().createView();
     if (targetId) {

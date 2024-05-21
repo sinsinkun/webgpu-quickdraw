@@ -1,15 +1,24 @@
 {
-  "name": "vite-wgpu",
-  "private": true,
-  "version": "0.0.0",
+  "name": "webgpu-simplified",
+  "description": "Simplified interface for webgpu for browser usage",
+  "version": "0.1.0",
   "type": "module",
+  "main": "build/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "tsc src/index.ts --outDir build"
+  },
+  "keywords": [
+    "webgpu",
+    "simplified",
+    "basic"
+  ],
+  "author": "sinsinkun",
+  "license": "ISC",
+  "dependencies": {
+    "@webgpu/types": "^0.1.40"
   },
   "devDependencies": {
-    "@webgpu/types": "^0.1.40",
     "typescript": "^5.2.2",
     "vite": "^5.2.0"
   }

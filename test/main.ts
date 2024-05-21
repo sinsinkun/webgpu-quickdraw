@@ -1,5 +1,5 @@
-import { Renderer, Primitives } from './short-webgpu';
-import type { Camera } from './short-webgpu';
+import { Renderer, Primitives } from '../src';
+import type { Camera } from '../src';
 import shader1 from './basic.wgsl?raw';
 import shader2 from "./showtx.wgsl?raw";
 
@@ -77,9 +77,9 @@ async function main() {
         }
       }
       // render to texture
-      renderer.draw([pipe2], tx2);
+      renderer.render([pipe2], tx2);
       // render to canvas
-      renderer.draw([pipe1, pipe2]);
+      renderer.render([pipe1, pipe2]);
     }
     update(true);
     log("Drew to canvas");
