@@ -21,12 +21,12 @@ import type {
  * import { Renderer, Primitive } from 'webgpu-quickdraw';
  * 
  * const renderer = await Renderer.init(canvas);
- * const pipe1 = renderer.addPipeline2D(shader);
+ * const pipe1 = renderer.addPipeline(shader);
  * const shape = Primitive.cube(20);
- * const obj1 = renderer.addObject2D(pipe1, shape.vertices, shape.uvs, shape.normals);
- * renderer.update(obj1, [0, 10, 0]);
+ * const obj1 = renderer.addObject(pipe1, shape.vertices, shape.uvs, shape.normals);
+ * renderer.updateObject({ pipelineId: pipe1, objectId: obj1, position: [0, 10, 0]});
  * 
- * renderer.draw();
+ * renderer.render();
  * ```
  */
 class Renderer {
@@ -54,7 +54,14 @@ class Renderer {
     this.#height = h;
     this.limits = d.limits;
   }
-  // initialize WebGPU connection
+  /**
+   * This **MUST** be called to initialize the renderer.
+   * 
+   * Establishes connection for WebGPU to Graphics API
+   * 
+   * @param {HTMLCanvasElement} canvas 
+   * @returns {Promise<Renderer>} Renderer instance
+   */
   static async init(canvas: HTMLCanvasElement | null): Promise<Renderer> {
     if (!canvas) throw new Error("No canvas provided");
     // test webgpu compatibility
@@ -99,7 +106,19 @@ class Renderer {
       canvas.height,
     );
   }
-  // helper for making cameras
+  /**
+   * Helper function for making a camera to attach to objects for rendering
+   * 
+   * @param {String} type orthographic or perspective
+   * @param {Object} options 
+   * @param {number} options.fovY for perspective camera only
+   * @param {number} options.near near plane
+   * @param {number} options.far far plane
+   * @param {[number, number, number]} options.translate move camera position
+   * @param {[number, number, number]} options.lookAt camera target position
+   * @param {[number, number, number]} options.up up direction (defaults to Y)
+   * @returns {Object} camera object with all relevant properties to adjust view matrix
+   */
   makeCamera(type: "ortho" | "persp", options?: CameraOptions): Camera {
     switch (type) {
       case "ortho":
@@ -125,7 +144,15 @@ class Renderer {
         throw new Error(`Invalid camera type \"${type}\"`);
     }
   }
-  // create texture buff
+  /**
+   * create texture buffer object, with texture loaded in if provided.
+   * 
+   * @param {number} width 
+   * @param {number} height 
+   * @param {string} url 
+   * @param {boolean} canvasFormat use rgb8 format or native canvas format
+   * @returns {Promise<number>}
+   */
   async addTexture(width: number, height: number, url?: string, canvasFormat?: boolean): Promise<number> {
     const id = this.textures.length;
     const texture: GPUTexture = this.#device.createTexture({
@@ -148,7 +175,12 @@ class Renderer {
     this.textures.push(texture);
     return id;
   }
-  // swap out texture for a new one (note: cannot change size)
+  /**
+   * swap out texture for a new one (note: cannot change size)
+   * 
+   * @param {number} textureId 
+   * @param {string} url 
+   */
   async updateTexture(textureId:number, url: string) {
     const texture = this.textures[textureId];
     if (!texture) throw new Error(`Could not find texture ${textureId}`);
@@ -160,7 +192,15 @@ class Renderer {
       { width: texture.width, height: texture.height }
     );
   }
-  // replace texture and associated bindgroup
+  /**
+   * replace texture and associated bindgroup
+   * 
+   * @param {number} textureId 
+   * @param {number} pipelineId 
+   * @param {number} width 
+   * @param {number} height 
+   * @param {boolean} canvasFormat use rgb8 format or native canvas format
+   */
   updateTextureSize(textureId:number, pipelineId:number, width:number, height:number, canvasFormat?: boolean) {
     const old = this.textures[textureId];
     if (!old) throw new Error(`Could not find texture ${textureId}`);
@@ -179,14 +219,26 @@ class Renderer {
     const newGroup = this.addBindGroup(pipeline.pipe, pipeline.maxObjCount, texture);
     pipeline.bindGroup0 = newGroup;
   }
-  // change clear color
+  /**
+   * Change clear color for canvas
+   * 
+   * @param {number} r 
+   * @param {number} g 
+   * @param {number} b 
+   * @param {number|undefined} a 
+   */
   updateClearRGB(r: number, g: number, b: number, a?: number) {
     this.clearColor.r = r ? Math.floor(r)/255 : 0;
     this.clearColor.g = g ? Math.floor(g)/255 : 0;
     this.clearColor.b = b ? Math.floor(b)/255 : 0;
     this.clearColor.a = a ? Math.floor(a)/255 : 1;
   }
-  // change canvas size
+  /**
+   * resize canvas
+   * 
+   * @param {number} w 
+   * @param {number} h 
+   */
   updateCanvas(w: number, h: number) {
     if (!this.#device) throw new Error("Renderer not initialized");
     // create texture for MSAA antialiasing
@@ -358,7 +410,15 @@ class Renderer {
     }
     return out;
   }
-  // create buffers for render object
+  /**
+   * Add new object to render
+   * 
+   * @param {number} pipelineId 
+   * @param {Array<[number, number, number]>} verts 
+   * @param {Array<[number, number]>} uvs 
+   * @param {Array<[number, number, number]>} normals 
+   * @returns {number} objectId
+   */
   addObject(
     pipelineId: number,
     verts: Array<[number, number, number]>,
@@ -425,7 +485,19 @@ class Renderer {
     this.updateObject({ pipelineId, objectId:id });
     return id;
   }
-  // update buffers for render object
+  /**
+   * Updates model transforms for object
+   * 
+   * @param {Object} input
+   * @param {number} input.pipelineId required field
+   * @param {number} input.objectId required field
+   * @param {[number, number, number] | undefined} input.translate
+   * @param {[number, number, number] | undefined} input.rotateAxis
+   * @param {number | undefined} input.rotateDeg
+   * @param {[number, number, number] | undefined} input.scale
+   * @param {boolean} input.visible
+   * @param {Object} input.camera output from renderer.makeCamera(...)
+   */
   updateObject(input: UpdateData) {
     const { pipelineId, objectId, translate, visible, rotateAxis, rotateDeg, scale, camera } = input;
     if (!this.#device) throw new Error("Renderer not initialized");
@@ -468,7 +540,12 @@ class Renderer {
     const stride = this.limits.minStorageBufferOffsetAlignment;
     this.#device.queue.writeBuffer(dpipe.bindGroup0.entries[0], stride * obj.pipelineIndex, mvp);
   }
-  // render to canvas
+  /**
+   * Render pipeline to target
+   * 
+   * @param {Array<number>} pipelineIds pipelines to render
+   * @param {number | undefined} targetId texture to render to, or canvas if unfilled
+   */
   render(pipelineIds: Array<number>, targetId?: number) {
     if (!this.#device) throw new Error("Renderer not initialized");
     let t = this.#context.getCurrentTexture().createView();

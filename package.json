@@ -1,10 +1,11 @@
 {
   "name": "webgpu-quickdraw",
   "description": "Simplified interface for webgpu for drawing to a canvas, quick and easy to use.",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "type": "module",
   "main": "build/index.js",
   "types": "build/index.d.js",
+  "module": "build/index.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc --project src",
