@@ -1,7 +1,7 @@
 {
   "name": "webgpu-quickdraw",
   "description": "Simplified interface for webgpu for drawing to a canvas, quick and easy to use.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "main": "build/index.js",
   "types": "build/index.d.js",
@@ -18,7 +18,7 @@
   ],
   "author": "sinsinkun",
   "license": "ISC",
-  "files": ["build", "package.json", "LICENSE", "README.md", "public"],
+  "files": ["build", "package.json", "LICENSE", "README.md"],
   "devDependencies": {
     "@webgpu/types": "^0.1.40",
     "typescript": "^5.2.2",
