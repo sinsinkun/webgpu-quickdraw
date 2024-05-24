@@ -51,8 +51,10 @@ It does not retain any information regarding the output shape.
 
 ### To-do:
 - custom uniform implementation
+- instancing of objects
 - more primitive shapes
 - 3d model importing
+- compute shaders?
 
 <img src="https://sinsinkun.github.io/webgpu-quickdraw/screenshot2.png" width="600px" />
 

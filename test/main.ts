@@ -22,7 +22,7 @@ function log(msg: string): void {
 
 async function main() {
   try {
-    log("Hello world");
+    log("Starting Quickdraw");
     // initialize renderer
     const renderer = await Renderer.init(canvas);
     // change background color
