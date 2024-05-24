@@ -1,5 +1,5 @@
-import { Renderer, Primitives } from '../src';
-import type { Camera } from '../src';
+import { Renderer, Primitives, Vec } from '../src';
+import type { Camera, UniformDescription } from '../src';
 import shader1 from './basic.wgsl?raw';
 import shader2 from "./showtx.wgsl?raw";
 
@@ -33,8 +33,12 @@ async function main() {
     // create pipeline
     const tx1: number = await renderer.addTexture(400, 400, BASE_URL + '/logo.png');
     const tx2: number = await renderer.addTexture(512, 512, undefined, true);
-    const pipe1 = renderer.addPipeline(shader2, 10, tx2);
-    const pipe2 = renderer.addPipeline(shader1, 100, tx1);
+    const custom: Array<UniformDescription> = [
+      { bindSlot: 0, visibility: 'fragment', type: 'vec3f' },
+      { bindSlot: 1, visibility: 'fragment', type: 'f32' }
+    ]
+    const pipe1 = renderer.addPipeline(shader2, 10, { textureId: tx2 });
+    const pipe2 = renderer.addPipeline(shader1, 100, { textureId: tx1, uniforms:custom });
     
     // create pcamera
     const cam1: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,300] });
@@ -72,7 +76,11 @@ async function main() {
             ],
             rotateAxis: raxis,
             rotateDeg: rot,
-            camera: cam1
+            camera: cam1,
+            uniformData: [
+              Vec.colorRGB(100 + 100 * Math.sin(rot * 0.02), 200, 100 + 100 * Math.cos(rot * 0.02)),
+              new Float32Array([0.8])
+            ]
           });
         }
       }

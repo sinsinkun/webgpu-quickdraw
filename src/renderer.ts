@@ -9,6 +9,8 @@ import type {
   UpdateData,
   Camera,
   CameraOptions,
+  PipelineOptions,
+  UniformDescription,
 } from './index';
 
 /**
@@ -19,6 +21,8 @@ import type {
  * ### Usage:
  * ```js
  * import { Renderer, Primitive } from 'webgpu-quickdraw';
+ * import shader from './shader.wgsl?raw';
+ * const canvas = document.querySelector('#canvas');
  * 
  * const renderer = await Renderer.init(canvas);
  * const pipe1 = renderer.addPipeline(shader);
@@ -216,7 +220,7 @@ class Renderer {
     // update bind group
     const pipeline = this.pipelines[pipelineId];
     if (!pipeline) throw new Error(`Could not find pipeline ${pipelineId}`);
-    const newGroup = this.addBindGroup(pipeline.pipe, pipeline.maxObjCount, texture);
+    const newGroup = this.addBindGroup0(pipeline.pipe, pipeline.maxObjCount, texture);
     pipeline.bindGroup0 = newGroup;
   }
   /**
@@ -270,18 +274,23 @@ class Renderer {
    * 
    * @param {string} shader wgsl shader as a string
    * @param {number} maxObjCount keep low to minimize memory consumption
-   * @param {number} textureId texture must be added to cache, then referenced here
-   * @param {GPUCullMode} cullMode ['front','back','none'] affects transparency
+   * @param {object} options optional configurations for pipeline
+   * @param {number} options.textureId texture must be added to cache, then referenced here
+   * @param {GPUCullMode} options.cullMode ['front','back','none'] affects transparency
+   * @param {string} options.vertexFunction name for vertex function
+   * @param {string} options.fragmentFunction name for fragment function
+   * @param {Array<UniformDescription>} options.uniforms additional uniforms from user
    * @returns {number} pipeline id (required for creating render objects)
    */
-  addPipeline(shader:string, maxObjCount:number, textureId?:number, cullMode:GPUCullMode='none'): number {
+  addPipeline(shader:string, maxObjCount:number, options: PipelineOptions): number {
     if (!this.#device) throw new Error("Renderer not initialized");
     const shaderModule: GPUShaderModule = this.#device.createShaderModule({
       label: "shader-module",
       code: shader
     });
     // create pipeline
-    const bindGroupLayout: GPUBindGroupLayout = this.#device.createBindGroupLayout({
+    const bindGroups = [];
+    const bindGroup0Layout: GPUBindGroupLayout = this.#device.createBindGroupLayout({
       label: "bind-group-0-layout",
       entries: [
         { // mvp matrix
@@ -301,9 +310,28 @@ class Renderer {
         }
       ]
     });
+    bindGroups.push(bindGroup0Layout);
+    // create custom uniform bind group
+    if (options.uniforms && options.uniforms.length > 0) {
+      const bind1Entries: Array<GPUBindGroupLayoutEntry> = options.uniforms.map(uniform => {
+        let visibility = GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT;
+        if (uniform.visibility === "fragment") visibility = GPUShaderStage.FRAGMENT;
+        else if (uniform.visibility === 'vertex') visibility = GPUShaderStage.VERTEX;
+        return {
+          binding: uniform.bindSlot,
+          visibility,
+          buffer: { hasDynamicOffset: true }
+        }
+      });
+      const bindGroup1Layout: GPUBindGroupLayout = this.#device.createBindGroupLayout({
+        label: "bind-group-1-layout",
+        entries: bind1Entries
+      });
+      bindGroups.push(bindGroup1Layout);
+    }
     const pipelineLayout: GPUPipelineLayout = this.#device.createPipelineLayout({
       label: "render-pipeline-layout",
-      bindGroupLayouts: [bindGroupLayout]
+      bindGroupLayouts: bindGroups
     });
     const blendMode: GPUBlendComponent = {
       srcFactor: 'src-alpha',
@@ -314,7 +342,7 @@ class Renderer {
       layout: pipelineLayout,
       vertex: {
         module: shaderModule,
-        entryPoint: "vertexMain",
+        entryPoint: options.vertexFunction ?? "vertexMain",
         buffers: [
           { // position
             arrayStride: 12,
@@ -332,7 +360,7 @@ class Renderer {
       },
       fragment: {
         module: shaderModule,
-        entryPoint: "fragmentMain",
+        entryPoint: options.fragmentFunction ?? "fragmentMain",
         targets: [{ format: this.#format, blend: {color: blendMode, alpha: blendMode} }]
       },
       multisample: {
@@ -344,25 +372,27 @@ class Renderer {
         depthCompare: 'less-equal',
       },
       primitive: {
-        cullMode: cullMode
+        cullMode: options.cullMode ? options.cullMode : 'none'
       }
     });
     // create bind group
     let tx;
-    if (typeof textureId === 'number') tx = this.textures[textureId];
-    const bindGroup = this.addBindGroup(pipeline, maxObjCount, tx);
+    if (typeof options.textureId === 'number') tx = this.textures[options.textureId];
+    const bindGroup0 = this.addBindGroup0(pipeline, maxObjCount, tx);
+    const bindGroup1 = options.uniforms ? this.addBindGroup1(pipeline, maxObjCount, options.uniforms) : undefined;
     // add to cache
     const pipe: RenderPipeline = {
       pipe: pipeline,
       objects: [],
       maxObjCount,
-      bindGroup0: bindGroup,
+      bindGroup0,
+      bindGroup1,
     };
     this.pipelines.push(pipe);
     return (this.pipelines.length - 1);
   }
-  // create bind group
-  addBindGroup(pipeline: GPURenderPipeline, maxObjCount:number, texture?:GPUTexture): RenderBindGroup {
+  // create default bind group
+  addBindGroup0(pipeline: GPURenderPipeline, maxObjCount:number, texture?:GPUTexture): RenderBindGroup {
     // create uniform buffers
     const minStrideSize: number = this.limits.minUniformBufferOffsetAlignment;
     const mvpBuffer: GPUBuffer = this.#device.createBuffer({
@@ -392,7 +422,6 @@ class Renderer {
       lodMaxClamp: 1,
       maxAnisotropy: 1
     });
-    // -- TODO: intake custom uniforms
     // create bind group
     const mvpSize: number = 4 * 4 * 4 * 3; // mat4 32bit/4byte floats
     const bindGroup: GPUBindGroup = this.#device.createBindGroup({
@@ -407,6 +436,57 @@ class Renderer {
     const out: RenderBindGroup = {
       base: bindGroup,
       entries: [mvpBuffer],
+    }
+    return out;
+  }
+  // create custom bind group
+  addBindGroup1(pipeline: GPURenderPipeline, maxObjCount:number, uniforms:Array<UniformDescription>): RenderBindGroup {
+    // create uniform buffers
+    const minStrideSize: number = this.limits.minUniformBufferOffsetAlignment;
+    const bindEntries: Array<GPUBuffer> = []; 
+    const bindDesc: Array<GPUBindGroupEntry> = [];
+    uniforms.forEach((uniform, i) => {
+      let sizeInBytes = uniform.sizeInBytes || 0;
+      switch (uniform.type) {
+        case 'f32':
+        case 'i32':
+          sizeInBytes = 4;
+          break;
+        case 'vec2f':
+          sizeInBytes = 8;
+          break;
+        case 'vec3f':
+          sizeInBytes = 12;
+          break;
+        case 'vec4f':
+          sizeInBytes = 16;
+          break;
+        case 'struct':
+        default:
+          break;
+      }
+      const size = minStrideSize * maxObjCount;
+      const entry: GPUBuffer = this.#device.createBuffer({
+        label: `custom-uniform-${i}`,
+        size: size,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      })
+      bindEntries.push(entry);
+      const desc: GPUBindGroupEntry = {
+        binding: i,
+        resource: { buffer:entry, size: sizeInBytes }
+      }
+      bindDesc.push(desc);
+    });
+    // create bind group
+    const bindGroup: GPUBindGroup = this.#device.createBindGroup({
+      label: "bind-group-1",
+      layout: pipeline.getBindGroupLayout(1),
+      entries: bindDesc
+    });
+    const out: RenderBindGroup = {
+      base: bindGroup,
+      entries: bindEntries
     }
     return out;
   }
@@ -539,6 +619,13 @@ class Renderer {
     }
     const stride = this.limits.minStorageBufferOffsetAlignment;
     this.#device.queue.writeBuffer(dpipe.bindGroup0.entries[0], stride * obj.pipelineIndex, mvp);
+    // update custom uniforms
+    if (dpipe.bindGroup1 && input.uniformData) {
+      dpipe.bindGroup1.entries.forEach((buffer, i) => {
+        if (!input.uniformData?.[i]) return;
+        this.#device.queue.writeBuffer(buffer, stride * obj.pipelineIndex, input.uniformData[i]);
+      });
+    }
   }
   /**
    * Render pipeline to target
@@ -558,9 +645,9 @@ class Renderer {
       }
     }
     // create new command encoder (consumed at the end)
-    const encoder: GPUCommandEncoder = this.#device.createCommandEncoder({ label: "draw-encoder" });
+    const encoder: GPUCommandEncoder = this.#device.createCommandEncoder({ label: "render-encoder" });
     const pass: GPURenderPassEncoder = encoder.beginRenderPass({
-      label: "draw-pass",
+      label: "render-pass",
       colorAttachments: [{
         view: this.#msaa.createView(),
         resolveTarget: t,
@@ -589,6 +676,10 @@ class Renderer {
         pass.setVertexBuffer(1, obj.uvBuffer);
         pass.setVertexBuffer(2, obj.normalBuffer);
         pass.setBindGroup(0, pipeline.bindGroup0.base, [stride * obj.pipelineIndex]);
+        if (pipeline.bindGroup1) {
+          const offsets = pipeline.bindGroup1.entries.map(_ => stride * obj.pipelineIndex);
+          pass.setBindGroup(1, pipeline.bindGroup1.base, offsets);
+        }
         pass.draw(obj.vertexCount);
       });
     });

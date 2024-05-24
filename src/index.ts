@@ -37,6 +37,25 @@ export interface Shape {
   normals: Array<[number, number, number]>,
 }
 
+/**
+ * Inputs for updating an object in a pipeline
+ * 
+ * Note that uniformData arrays must be in the Float32Array/Int32Array format,
+ * not as a default js array. The Vec.float() function can also be used.
+ * 
+ * Also note that even individual values must be wrapped in a Float32Array/Int32Array
+ * due to fixed size requirements
+ * 
+ * @param {number} pipelineId
+ * @param {number} objectId
+ * @param {[number, number, number]} translate
+ * @param {[number, number, number]} rotateAxis the axis on which rotation occurs
+ * @param {number} rotateDeg
+ * @param {[number, number, number]} scale
+ * @param {boolean} visible whether or not to render the object
+ * @param {Camera} camera camera object to determine view transform
+ * @param {Array<Float32Array | Int32Array>} uniformData custom uniform data can be passed in here
+ */
 export interface UpdateData {
   pipelineId: number,
   objectId: number,
@@ -46,6 +65,35 @@ export interface UpdateData {
   scale?: [number, number, number],
   visible?: boolean,
   camera?: Camera,
+  uniformData?: Array<Float32Array | Int32Array>
+}
+
+/**
+ * Configurations for custom uniform binding.
+ * 
+ * Note that dynamic uniforms have a max size of 256 bytes.
+ * If passing in a struct, use sizeInBytes to describe the size.
+ * 
+ * @param {number} bindSlot binding index in WGSL
+ * @param {string} visibility which shader function to expose this uniform to
+ * @param {boolean} dynamic whether or not uniform is different per object in the pipeline
+ * @param {string} type type of uniform (determines size)
+ * @param {number | undefined} sizeInBytes size of uniform in bytes (if type is struct)
+ */
+export interface UniformDescription {
+  bindSlot: number,
+  visibility: 'vertex' | 'fragment' | 'both',
+  type: 'i32' | 'f32' | 'vec2f'| 'vec3f' | 'vec4f' | 'struct',
+  sizeInBytes?: number,
+}
+
+// additional options when creating a pipeline
+export interface PipelineOptions {
+  textureId?: number,
+  cullMode?: 'back' | 'front' | 'none',
+  uniforms?: Array<UniformDescription>,
+  vertexFunction?: string,
+  fragmentFunction?: string,
 }
 
 // camera information
