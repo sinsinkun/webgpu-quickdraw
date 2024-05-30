@@ -20,6 +20,15 @@ use case.
 
 Some utility functions are included (like primitive shapes) for ease of use.
 
+<img src="https://sinsinkun.github.io/webgpu-quickdraw/screenshot2.png" width="400px" />
+
+Transparency, MSAA, depth buffer, and texture mapping pre-included
+
+<img src="https://sinsinkun.github.io/webgpu-quickdraw/screenshot.png" width="400px" />
+
+1000 cubes renders with 2ms GPU computation time
+
+
 ### Usage
 
 All WebGPU configurations have been reduced to the absolute lowest possible number of lines.
@@ -113,18 +122,25 @@ fn fragmentMain(input: VertOut) -> @location(0) vec4f {
 - can output into textures for post processing
 - support for WebGPU instancing
 
+
+### Changelog
+<b>0.1.7</b>
+- Added support for index buffer
+- Added support for WebGPU instancing
+- Fixed issue with orthographic projection matrix
+
+<b>0.1.6</b>
+- Added support for custom uniform buffers
+
+<b>0.1.5</b>
+- Better documentation
+
+
 ### To-do
 - more primitive shapes
 - 3d model importing
 - compute shaders?
 
-<img src="https://sinsinkun.github.io/webgpu-quickdraw/screenshot2.png" width="400px" />
-
-Transparency, MSAA, depth buffer, and texture mapping pre-included
-
-<img src="https://sinsinkun.github.io/webgpu-quickdraw/screenshot.png" width="400px" />
-
-1000 cubes renders with 2ms GPU computation time
 
 ### Acknowledgements
 
