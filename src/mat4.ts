@@ -51,11 +51,12 @@ class Mat4 {
     return dst;
   }
   // create identity matrix
-  static identity() {
+  static identity(i?: number) {
+    const x = i || 1;
     return new Float32Array([
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, 0,
+      x, 0, 0, 0,
+      0, x, 0, 0,
+      0, 0, x, 0,
       0, 0, 0, 1,
     ]);
   }

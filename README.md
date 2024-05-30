@@ -1,14 +1,16 @@
 # WebGPU Quickdraw
 
-Custom renderer library for simplifying working with WebGPU.
+Lean render library for simplifying working with WebGPU.
 
 The goal of this library is to dramatically reduce the setup time required
 to start using WebGPU by pre-including common requirements for graphics setups,
 without completely abstracting away the WebGPU architecture.
 
-An exception is bind group configuration, which was bundled together with the
-pipeline creation process due to how tightly linked the two are and the difficulty
-in creating a generic pipeline that can support any bind group layout.
+A notable step that's "skipped" is bind group configuration/creation, which was 
+bundled together with the pipeline creation process due to how tightly linked 
+the two are. This locks the renderer to a single implementation of bind groups
+that should be optimal for most rendering pipelines, but may not be for specific
+setups.
 
 This library **<u>is not</u>** meant to account for every possible combination
 of WebGPU capabilities, and allow every possible configuration for users.
@@ -18,7 +20,7 @@ use case.
 
 Some utility functions are included (like primitive shapes) for ease of use.
 
-### Usage:
+### Usage
 
 All WebGPU configurations have been reduced to the absolute lowest possible number of lines.
 
@@ -95,7 +97,7 @@ fn fragmentMain(input: VertOut) -> @location(0) vec4f {
 }
 ```
 
-### Features:
+### Features
 - support for reusing pipelines
 - support for canvas resizing
 - multiple render objects
@@ -105,12 +107,13 @@ fn fragmentMain(input: VertOut) -> @location(0) vec4f {
 - pre-built mvp transforms for vertex shader
 - intakes uv buffer for VBO
 - intakes normal buffer for VBO
+- intakes index buffer for VBO
 - intakes texture for uv mapping
 - intakes custom uniforms
 - can output into textures for post processing
+- support for WebGPU instancing
 
-### To-do:
-- instancing of objects
+### To-do
 - more primitive shapes
 - 3d model importing
 - compute shaders?

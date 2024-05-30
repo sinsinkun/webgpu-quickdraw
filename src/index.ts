@@ -11,6 +11,9 @@ export interface RenderObject {
   normalBuffer: GPUBuffer,
   vertexCount: number,
   pipelineIndex: number,
+  indexBuffer?: GPUBuffer,
+  indexCount?: number,
+  instances?: number,
 }
 
 // render bind group information
@@ -35,6 +38,7 @@ export interface Shape {
   vertices: Array<[number, number, number]>,
   uvs: Array<[number, number]>,
   normals: Array<[number, number, number]>,
+  index?: Array<number>
 }
 
 /**

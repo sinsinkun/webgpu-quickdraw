@@ -282,7 +282,7 @@ class Renderer {
    * @param {Array<UniformDescription>} options.uniforms additional uniforms from user
    * @returns {number} pipeline id (required for creating render objects)
    */
-  addPipeline(shader:string, maxObjCount:number, options: PipelineOptions): number {
+  addPipeline(shader:string, maxObjCount:number, options?: PipelineOptions): number {
     if (!this.#device) throw new Error("Renderer not initialized");
     const shaderModule: GPUShaderModule = this.#device.createShaderModule({
       label: "shader-module",
@@ -312,7 +312,7 @@ class Renderer {
     });
     bindGroups.push(bindGroup0Layout);
     // create custom uniform bind group
-    if (options.uniforms && options.uniforms.length > 0) {
+    if (options && options.uniforms && options.uniforms.length > 0) {
       const bind1Entries: Array<GPUBindGroupLayoutEntry> = options.uniforms.map(uniform => {
         let visibility = GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT;
         if (uniform.visibility === "fragment") visibility = GPUShaderStage.FRAGMENT;
@@ -342,7 +342,7 @@ class Renderer {
       layout: pipelineLayout,
       vertex: {
         module: shaderModule,
-        entryPoint: options.vertexFunction ?? "vertexMain",
+        entryPoint: options?.vertexFunction ?? "vertexMain",
         buffers: [
           { // position
             arrayStride: 12,
@@ -360,7 +360,7 @@ class Renderer {
       },
       fragment: {
         module: shaderModule,
-        entryPoint: options.fragmentFunction ?? "fragmentMain",
+        entryPoint: options?.fragmentFunction ?? "fragmentMain",
         targets: [{ format: this.#format, blend: {color: blendMode, alpha: blendMode} }]
       },
       multisample: {
@@ -372,14 +372,14 @@ class Renderer {
         depthCompare: 'less-equal',
       },
       primitive: {
-        cullMode: options.cullMode ? options.cullMode : 'none'
+        cullMode: options?.cullMode ? options.cullMode : 'none'
       }
     });
     // create bind group
     let tx;
-    if (typeof options.textureId === 'number') tx = this.textures[options.textureId];
+    if (options && typeof options.textureId === 'number') tx = this.textures[options.textureId];
     const bindGroup0 = this.addBindGroup0(pipeline, maxObjCount, tx);
-    const bindGroup1 = options.uniforms ? this.addBindGroup1(pipeline, maxObjCount, options.uniforms) : undefined;
+    const bindGroup1 = options?.uniforms ? this.addBindGroup1(pipeline, maxObjCount, options.uniforms) : undefined;
     // add to cache
     const pipe: RenderPipeline = {
       pipe: pipeline,
@@ -493,10 +493,12 @@ class Renderer {
   /**
    * Add new object to render
    * 
-   * @param {number} pipelineId 
-   * @param {Array<[number, number, number]>} verts 
-   * @param {Array<[number, number]>} uvs 
-   * @param {Array<[number, number, number]>} normals 
+   * @param {number} pipelineId which shader pipeline to use for object
+   * @param {Array<[number, number, number]>} verts
+   * @param {Array<[number, number]>} uvs
+   * @param {Array<[number, number, number]>} normals
+   * @param {Array<number>} indices indexing of vertices to render
+   * @param {number} instances number of instances of object to render
    * @returns {number} objectId
    */
   addObject(
@@ -504,6 +506,8 @@ class Renderer {
     verts: Array<[number, number, number]>,
     uvs?: Array<[number, number]>,
     normals?: Array<[number, number, number]>,
+    indices?: Array<number>,
+    instances?: number,
   ): number {
     if (!this.#device) throw new Error("Renderer not initialized");
     if (verts.length < 3) throw new Error("Not enough vertices");
@@ -550,6 +554,20 @@ class Renderer {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
     this.#device.queue.writeBuffer(normalBuffer, 0, normalMap);
+    // create index buffer
+    let indexBuffer: GPUBuffer | undefined;
+    if (indices && indices.length > 0) {
+      const indexMap = new Uint32Array(indices.length);
+      for (let i=0; i<indices.length; i++) {
+        indexMap[i] = indices[i];
+      }
+      indexBuffer = this.#device.createBuffer({
+        label: "index-buffer",
+        size: indexMap.byteLength,
+        usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+      });
+      this.#device.queue.writeBuffer(indexBuffer, 0, indexMap);
+    }
     // save to cache
     const pipe = this.pipelines[pipelineId];
     const id = pipe.objects.length;
@@ -560,6 +578,9 @@ class Renderer {
       normalBuffer,
       vertexCount: vlen,
       pipelineIndex: id,
+      indexBuffer,
+      indexCount: indices?.length,
+      instances: instances || 1,
     }
     pipe.objects.push(obj);
     this.updateObject({ pipelineId, objectId:id });
@@ -607,7 +628,7 @@ class Renderer {
     const h2 = this.#height/2;
     let proj: Float32Array;
     if (camera?.type === "persp") proj = Mat4.perspective(camera.fovY, w2/h2, camera.near, camera.far);
-    else proj = Mat4.ortho(-w2, w2, -h2, h2, camera?.near, camera?.far);
+    else proj = Mat4.ortho(-w2, w2, h2, -h2, camera?.near, camera?.far);
     // join everything together
     const mat4Size: number = 4 * 4;
     const mvpSize: number = 4 * 4 * 3; // mat4 32bit/4byte floats
@@ -636,7 +657,7 @@ class Renderer {
   render(pipelineIds: Array<number>, targetId?: number) {
     if (!this.#device) throw new Error("Renderer not initialized");
     let t = this.#context.getCurrentTexture().createView();
-    if (targetId) {
+    if (typeof targetId === 'number') {
       const tx = this.textures[targetId];
       if (tx) {
         t = tx.createView();
@@ -680,7 +701,12 @@ class Renderer {
           const offsets = pipeline.bindGroup1.entries.map(_ => stride * obj.pipelineIndex);
           pass.setBindGroup(1, pipeline.bindGroup1.base, offsets);
         }
-        pass.draw(obj.vertexCount);
+        if (obj.indexBuffer && obj.indexCount) {
+          pass.setIndexBuffer(obj.indexBuffer, 'uint32');
+          pass.drawIndexed(obj.indexCount, obj.instances || 1);
+        } else {
+          pass.draw(obj.vertexCount, obj.instances || 1);
+        }
       });
     });
     pass.end();
