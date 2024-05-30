@@ -28,7 +28,6 @@ Transparency, MSAA, depth buffer, and texture mapping pre-included
 
 1000 cubes renders with 2ms GPU computation time
 
-
 ### Usage
 
 All WebGPU configurations have been reduced to the absolute lowest possible number of lines.
@@ -57,7 +56,6 @@ renderer.render([pipe1]);
 
 Note: Primitives is only to help generate the vertex, uv, and normal arrays.
 It does not retain any information regarding the output shape.
-
 
 Shaders are expected to be WGSL, passed in as a string. You can learn more about WGSL
 here: https://webgpufundamentals.org/webgpu/lessons/webgpu-wgsl.html, but if you are
@@ -122,7 +120,6 @@ fn fragmentMain(input: VertOut) -> @location(0) vec4f {
 - can output into textures for post processing
 - support for WebGPU instancing
 
-
 ### Changelog
 <b>0.1.7</b>
 - Added support for index buffer
@@ -135,12 +132,10 @@ fn fragmentMain(input: VertOut) -> @location(0) vec4f {
 <b>0.1.5</b>
 - Better documentation
 
-
 ### To-do
 - more primitive shapes
 - 3d model importing
 - compute shaders?
-
 
 ### Acknowledgements
 
