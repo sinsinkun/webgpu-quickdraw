@@ -1,10 +1,5 @@
 import { Shape } from './index';
-
-interface VertexGroup {
-  vertex: [number, number, number],
-  uv: [number, number],
-  normal: [number, number, number],
-}
+import type { VertexGroup, GltfData } from './index';
 
 class ModelLoader {
   // load vertex data from obj file
@@ -110,10 +105,68 @@ class ModelLoader {
     const rawData = await fetch(file).then(v => v.blob());
     console.log("todo", rawData);
   }
-  // load vertex data from gltf file
-  static async loadGltf(file: string): Promise<any> {
-    const rawData = await fetch(file).then(v => v.text());
-    console.log("todo", rawData);
+  // load model data from gltf file
+  static async loadGltf(file: string): Promise<GltfData> {
+    const gltfData = await fetch(file).then(v => v.json());
+    console.log("loaded gltf:", gltfData);
+    return gltfData;
+  }
+  // load data from gltf buffer
+  static async loadGltfMesh(data: GltfData, mesh: number, baseUrl: string = ""): Promise<Shape> {
+    // decode gltf info
+    const primitive = data.meshes[mesh]?.primitives[0];
+    const vertAccessIdx: number = primitive.attributes?.POSITION || -1;
+    const uvAccessIdx: number = primitive.attributes?.TEXCOORD_0 || -1;
+    const nAccessIdx: number = primitive.attributes?.NORMAL || -1;
+    const idxAccessIdx: number = primitive?.indices || -1;
+    // declare outputs
+    let vertices: Array<[number, number, number]> = [];
+    let uvs: Array<[number, number]>  = [];
+    let normals: Array<[number, number, number]>  = [];
+    let index: Array<number> = [];
+
+    // load buffers
+    const buffersPromise = data.buffers.map(async (b) => {
+      const o = fetch(baseUrl + b.uri).then(x => x.blob());
+      return o;
+    });
+    const buffersRes = await Promise.allSettled(buffersPromise);
+    const buffers: Array<Blob> = buffersRes.map(r => {
+      if (r.status === "rejected") return new Blob();
+      return r.value;
+    });
+    console.log(buffers);
+
+    // read data from buffer
+    if (data.accessors[vertAccessIdx]?.type === "VEC3") {
+      const bufferView = data.accessors[vertAccessIdx].bufferView;
+      // const count = data.accessors[vertAccessIdx].count;
+      const bufferAccess = data.bufferViews[bufferView].buffer;
+      const start = data.bufferViews[bufferView].byteOffset;
+      const end = start + data.bufferViews[bufferView].byteLength;
+
+      if (bufferAccess > buffers.length) throw new Error("tried to access non-existant buffer");
+      const slice = buffers[bufferAccess].slice(start, end);
+      console.log("slice of buffer data", slice);
+    }
+    if (data.accessors[uvAccessIdx]?.type === "VEC2") {
+      // todo
+    }
+    if (data.accessors[nAccessIdx]?.type === "VEC3") {
+      // todo
+    }
+    if (data.accessors[idxAccessIdx]?.type === "SCALAR") {
+      // todo
+    }
+
+    // build output
+    let output: Shape = {
+      vertices,
+      uvs,
+      normals,
+    }
+    if (index.length > 0) output.index = index;
+    return output;
   }
 }
 

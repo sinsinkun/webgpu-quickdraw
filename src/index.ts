@@ -4,6 +4,52 @@ import Vec from "./vec";
 import Mat4 from "./mat4";
 import ModelLoader from "./modelLoader";
 
+// structs for obj
+export interface VertexGroup {
+  vertex: [number, number, number],
+  uv: [number, number],
+  normal: [number, number, number],
+}
+
+// structs for gltf
+export interface GltfPrimitive {
+  attributes: any,
+  indices: number,
+}
+
+export interface GltfMesh {
+  name: string,
+  primitives: Array<GltfPrimitive>,
+}
+
+export interface GltfBuffer {
+  byteLength: number,
+  uri: string,
+}
+
+export interface GltfBufferView {
+  buffer: number,
+  byteLength: number,
+  byteOffset: number,
+  target: number,
+}
+
+export interface GltfAccessor {
+  bufferView: number,
+  componentType: number,
+  count: number,
+  type: string,
+  [key: string]: any
+}
+
+export interface GltfData {
+  accessors: Array<GltfAccessor>,
+  bufferViews: Array<GltfBufferView>,
+  buffers: Array<GltfBuffer>,
+  meshes: Array<GltfMesh>,
+  [key: string]: any
+}
+
 // render object information
 export interface RenderObject {
   visible: boolean,

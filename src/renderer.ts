@@ -712,6 +712,34 @@ class Renderer {
     pass.end();
     this.#device.queue.submit([encoder.finish()]);
   }
+  /**
+   * Manually free references to GPU memory
+   */
+  destroy() {
+    // destroy textures
+    this.#msaa.destroy();
+    this.#zbuffer.destroy();
+    this.textures.forEach(tx => tx.destroy());
+
+    // destroy pipeline buffers
+    this.pipelines.forEach(pipe => {
+      pipe.objects.forEach(obj => {
+        obj.vertexBuffer.destroy();
+        obj.uvBuffer.destroy();
+        obj.normalBuffer.destroy();
+        obj.indexBuffer?.destroy();
+      });
+      pipe.objects = [];
+      pipe.bindGroup0.entries.forEach(bf => bf.destroy());
+      pipe.bindGroup1?.entries.forEach(bf => bf.destroy());
+      pipe.bindGroup2?.entries.forEach(bf => bf.destroy());
+      pipe.bindGroup3?.entries.forEach(bf => bf.destroy());
+    });
+    this.pipelines = [];
+
+    // destroy device
+    this.#device.destroy();
+  }
 };
 
 export default Renderer;

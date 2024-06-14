@@ -154,8 +154,11 @@ async function example3(renderer: Renderer): Promise<{ update:Function, resize:F
   // object properties
   let rot: number = 0;
   let raxis: [number, number, number] = [0, 1, 0];
+  renderer.updateClearRGB(50, 60, 40);
   // load model
   const model: Shape = await ModelLoader.loadObj(BASE_URL + "/monkey.obj");
+  // const gtlf = await ModelLoader.loadGltf(BASE_URL + "/monkey.gltf");
+  // const model2 = await ModelLoader.loadGltfMesh(gtlf, 0, BASE_URL);
   log("Loaded 3d model");
   const pipe1 = renderer.addPipeline(shader1, 10);
   const cam1: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,4] });
