@@ -119,8 +119,13 @@ fn fragmentMain(input: VertOut) -> @location(0) vec4f {
 - intakes custom uniforms
 - can output into textures for post processing
 - support for WebGPU instancing
+- support for .obj file loading
 
 ### Changelog
+<b>0.1.8</b>
+- Added 3d model loading (.obj files)
+- Re-exported basic shader with custom uniforms as extendedBasic.wgsl
+
 <b>0.1.7</b>
 - Added support for index buffer
 - Added support for WebGPU instancing

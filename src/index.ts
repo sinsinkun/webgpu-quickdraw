@@ -2,6 +2,7 @@ import Primitives from "./primitives";
 import Renderer from "./renderer";
 import Vec from "./vec";
 import Mat4 from "./mat4";
+import ModelLoader from "./modelLoader";
 
 // render object information
 export interface RenderObject {
@@ -127,4 +128,4 @@ export interface CameraOptions {
 }
 export type Camera = CameraTransform & (OrthoCamera | PerspCamera);
 
-export { Primitives, Mat4, Vec, Renderer };
+export { Primitives, Mat4, Vec, Renderer, ModelLoader };

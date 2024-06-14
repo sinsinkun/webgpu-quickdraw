@@ -1,8 +1,9 @@
-import { Renderer, Primitives, Vec } from '../src';
-import type { Camera, UniformDescription } from '../src';
+import { Renderer, Primitives, Vec, ModelLoader } from '../src';
+import type { Camera, UniformDescription, Shape } from '../src';
 import shader1 from './basic.wgsl?raw';
 import shader2 from "./showtx.wgsl?raw";
 import shader3 from "./instanced.wgsl?raw";
+import shader4 from "./extendedBasic.wgsl?raw";
 
 // const
 const BASE_URL: string = import.meta.env.BASE_URL;
@@ -34,7 +35,7 @@ async function example1(renderer: Renderer): Promise<{ update:Function, resize:F
     { bindSlot: 1, visibility: 'fragment', type: 'f32' }
   ]
   const pipe1 = renderer.addPipeline(shader2, 10, { textureId: tx2 });
-  const pipe2 = renderer.addPipeline(shader1, 100, { textureId: tx1, uniforms:custom });
+  const pipe2 = renderer.addPipeline(shader4, 100, { textureId: tx1, uniforms:custom });
 
   // create pcamera
   const cam1: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,300] });
@@ -148,12 +149,48 @@ async function example2(renderer: Renderer): Promise<{ update:Function, resize:F
   return { update, resize };
 }
 
+// loading 3d model
+async function example3(renderer: Renderer): Promise<{ update:Function, resize:Function }> {
+  // object properties
+  let rot: number = 0;
+  let raxis: [number, number, number] = [0, 1, 0];
+  // load model
+  const model: Shape = await ModelLoader.loadObj(BASE_URL + "/monkey.obj");
+  log("Loaded 3d model");
+  const pipe1 = renderer.addPipeline(shader1, 10);
+  const cam1: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,4] });
+  const obj1 = renderer.addObject(pipe1, model.vertices, model.uvs, model.normals);
+
+  function update(redraw:boolean = false) {
+    if (!redraw) rot += 0.5;
+    renderer.updateObject({
+      pipelineId: pipe1,
+      objectId: obj1,
+      rotateAxis: raxis,
+      rotateDeg: rot, 
+      camera: cam1
+    });
+    // render to canvas
+    renderer.render([pipe1]);
+  }
+
+  function resize() {
+    if (canvas) {
+      canvas.width = canvas.width === 680 ? 512 : 680;
+      renderer.updateCanvas(canvas.width, canvas.height);
+      update(true);
+    }
+  }
+
+  return {update, resize };
+}
+
 async function main() {
   try {
     log("Starting Quickdraw");
     // initialize renderer
     const renderer = await Renderer.init(canvas);
-    const { update, resize } = await example1(renderer);
+    const { update, resize } = await example3(renderer);
     update(true);
     log("Drew to canvas");
   
