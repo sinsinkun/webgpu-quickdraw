@@ -159,6 +159,7 @@ async function example3(renderer: Renderer): Promise<{ update:Function, resize:F
   log("Loaded 3d model");
   const pipe1 = renderer.addPipeline(shader1, 10);
   const cam1: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,4] });
+  // const cam2: Camera = renderer.makeCamera("ortho", { fovY:80, translate:[0,0,100] });
   const obj1 = renderer.addObject(pipe1, model.vertices, model.uvs, model.normals);
 
   function update(redraw:boolean = false) {
@@ -168,6 +169,8 @@ async function example3(renderer: Renderer): Promise<{ update:Function, resize:F
       objectId: obj1,
       rotateAxis: raxis,
       rotateDeg: rot, 
+      // scale: [80, 80, 80],
+      // camera: cam2,
       camera: cam1
     });
     // render to canvas

@@ -130,7 +130,7 @@ class Renderer {
           type,
           near: options?.near || 0,
           far: options?.far || 1000,
-          translate: options?.translate || [0,0,100],
+          translate: options?.translate || [0,0,10],
           lookAt: options?.lookAt || [0.0, 0.0, 0.0],
           up: options?.up || [0.0, 1.0, 0.0],
         };
@@ -140,7 +140,7 @@ class Renderer {
           fovY: options?.fovY || 60,
           near: options?.near || 1,
           far: options?.far || 1000,
-          translate: options?.translate || [0,0,100],
+          translate: options?.translate || [0,0,10],
           lookAt: options?.lookAt || [0.0, 0.0, 0.0],
           up: options?.up || [0.0, 1.0, 0.0],
         };
