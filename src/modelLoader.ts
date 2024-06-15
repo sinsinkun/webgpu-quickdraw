@@ -1,5 +1,4 @@
-import { Shape } from './index';
-import type { VertexGroup, GltfData } from './index';
+import type { VertexGroup, GltfData, Shape, BufferShape } from './index';
 
 class ModelLoader {
   // load vertex data from obj file
@@ -108,64 +107,87 @@ class ModelLoader {
   // load model data from gltf file
   static async loadGltf(file: string): Promise<GltfData> {
     const gltfData = await fetch(file).then(v => v.json());
-    console.log("loaded gltf:", gltfData);
+    // console.log("loaded gltf:", gltfData);
     return gltfData;
   }
   // load data from gltf buffer
-  static async loadGltfMesh(data: GltfData, mesh: number, baseUrl: string = ""): Promise<Shape> {
+  static async loadGltfMesh(data: GltfData, mesh: number, baseUrl: string = ""): Promise<BufferShape> {
     // decode gltf info
     const primitive = data.meshes[mesh]?.primitives[0];
-    const vertAccessIdx: number = primitive.attributes?.POSITION || -1;
-    const uvAccessIdx: number = primitive.attributes?.TEXCOORD_0 || -1;
-    const nAccessIdx: number = primitive.attributes?.NORMAL || -1;
-    const idxAccessIdx: number = primitive?.indices || -1;
-    // declare outputs
-    let vertices: Array<[number, number, number]> = [];
-    let uvs: Array<[number, number]>  = [];
-    let normals: Array<[number, number, number]>  = [];
-    let index: Array<number> = [];
+    const vertAccessIdx: number = primitive.attributes?.POSITION ?? -1;
+    const uvAccessIdx: number = primitive.attributes?.TEXCOORD_0 ?? -1;
+    const nAccessIdx: number = primitive.attributes?.NORMAL ?? -1;
+    const idxAccessIdx: number = primitive?.indices ?? -1;
+    if (vertAccessIdx === -1 || uvAccessIdx === -1 || nAccessIdx === -1 || idxAccessIdx === -1) {
+      throw new Error("Could not find all primitive attributes");
+    }
+    // declare output
+    let output: BufferShape = {
+      vertices: new ArrayBuffer(0),
+      vertexCount: 0,
+      uvs: new ArrayBuffer(0),
+      normals: new ArrayBuffer(0),
+    };
 
     // load buffers
     const buffersPromise = data.buffers.map(async (b) => {
-      const o = fetch(baseUrl + b.uri).then(x => x.blob());
+      const o = fetch(baseUrl + "/" + b.uri).then(x => x.arrayBuffer());
       return o;
     });
     const buffersRes = await Promise.allSettled(buffersPromise);
-    const buffers: Array<Blob> = buffersRes.map(r => {
-      if (r.status === "rejected") return new Blob();
+    const buffers: Array<ArrayBuffer> = buffersRes.map(r => {
+      if (r.status === "rejected") return new ArrayBuffer(0);
       return r.value;
     });
-    console.log(buffers);
 
     // read data from buffer
     if (data.accessors[vertAccessIdx]?.type === "VEC3") {
       const bufferView = data.accessors[vertAccessIdx].bufferView;
-      // const count = data.accessors[vertAccessIdx].count;
+      const count = data.accessors[vertAccessIdx].count;
       const bufferAccess = data.bufferViews[bufferView].buffer;
       const start = data.bufferViews[bufferView].byteOffset;
       const end = start + data.bufferViews[bufferView].byteLength;
-
+      // extract buffer slice
       if (bufferAccess > buffers.length) throw new Error("tried to access non-existant buffer");
       const slice = buffers[bufferAccess].slice(start, end);
-      console.log("slice of buffer data", slice);
+      output.vertices = slice;
+      output.vertexCount = count;
     }
     if (data.accessors[uvAccessIdx]?.type === "VEC2") {
-      // todo
+      const bufferView = data.accessors[uvAccessIdx].bufferView;
+      // const count = data.accessors[uvAccessIdx].count;
+      const bufferAccess = data.bufferViews[bufferView].buffer;
+      const start = data.bufferViews[bufferView].byteOffset;
+      const end = start + data.bufferViews[bufferView].byteLength;
+      // extract buffer slice
+      if (bufferAccess > buffers.length) throw new Error("tried to access non-existant buffer");
+      const slice = buffers[bufferAccess].slice(start, end);
+      output.uvs = slice;
     }
     if (data.accessors[nAccessIdx]?.type === "VEC3") {
-      // todo
+      const bufferView = data.accessors[nAccessIdx].bufferView;
+      // const count = data.accessors[nAccessIdx].count;
+      const bufferAccess = data.bufferViews[bufferView].buffer;
+      const start = data.bufferViews[bufferView].byteOffset;
+      const end = start + data.bufferViews[bufferView].byteLength;
+      // extract buffer slice
+      if (bufferAccess > buffers.length) throw new Error("tried to access non-existant buffer");
+      const slice = buffers[bufferAccess].slice(start, end);
+      output.normals = slice;
     }
     if (data.accessors[idxAccessIdx]?.type === "SCALAR") {
-      // todo
+      const bufferView = data.accessors[idxAccessIdx].bufferView;
+      const count = data.accessors[idxAccessIdx].count;
+      const bufferAccess = data.bufferViews[bufferView].buffer;
+      const start = data.bufferViews[bufferView].byteOffset;
+      const end = start + data.bufferViews[bufferView].byteLength;
+      // extract buffer slice
+      if (bufferAccess > buffers.length) throw new Error("tried to access non-existant buffer");
+      const slice = buffers[bufferAccess].slice(start, end);
+      output.index = slice;
+      output.indexCount = count;
     }
 
-    // build output
-    let output: Shape = {
-      vertices,
-      uvs,
-      normals,
-    }
-    if (index.length > 0) output.index = index;
     return output;
   }
 }

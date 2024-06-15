@@ -60,6 +60,7 @@ export interface RenderObject {
   pipelineIndex: number,
   indexBuffer?: GPUBuffer,
   indexCount?: number,
+  indexType: GPUIndexFormat,
   instances?: number,
 }
 
@@ -86,6 +87,16 @@ export interface Shape {
   uvs: Array<[number, number]>,
   normals: Array<[number, number, number]>,
   index?: Array<number>
+}
+
+// primitives shape info as ArrayBuffers
+export interface BufferShape {
+  vertices: ArrayBuffer,
+  vertexCount: number,
+  uvs: ArrayBuffer,
+  normals: ArrayBuffer,
+  index?: ArrayBuffer,
+  indexCount?: number,
 }
 
 /**

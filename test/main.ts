@@ -1,5 +1,5 @@
 import { Renderer, Primitives, Vec, ModelLoader } from '../src';
-import type { Camera, UniformDescription, Shape } from '../src';
+import type { Camera, UniformDescription, Shape, BufferShape } from '../src';
 import shader1 from './basic.wgsl?raw';
 import shader2 from "./showtx.wgsl?raw";
 import shader3 from "./instanced.wgsl?raw";
@@ -157,23 +157,41 @@ async function example3(renderer: Renderer): Promise<{ update:Function, resize:F
   renderer.updateClearRGB(50, 60, 40);
   // load model
   const model: Shape = await ModelLoader.loadObj(BASE_URL + "/monkey.obj");
-  // const gtlf = await ModelLoader.loadGltf(BASE_URL + "/monkey.gltf");
-  // const model2 = await ModelLoader.loadGltfMesh(gtlf, 0, BASE_URL);
+  const gtlf = await ModelLoader.loadGltf(BASE_URL + "/monkey.gltf");
+  const model2: BufferShape = await ModelLoader.loadGltfMesh(gtlf, 0, BASE_URL);
   log("Loaded 3d model");
   const pipe1 = renderer.addPipeline(shader1, 10);
   const cam1: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,4] });
   // const cam2: Camera = renderer.makeCamera("ortho", { fovY:80, translate:[0,0,100] });
   const obj1 = renderer.addObject(pipe1, model.vertices, model.uvs, model.normals);
+  const obj2 = renderer.addObjectAsBuffers(
+    pipe1,
+    model2.vertices,
+    model2.vertexCount,
+    model2.uvs,
+    model2.normals,
+    model2.index,
+    model2.indexCount
+  );
 
   function update(redraw:boolean = false) {
     if (!redraw) rot += 0.5;
     renderer.updateObject({
       pipelineId: pipe1,
       objectId: obj1,
+      translate: [1.5, 0, 0],
       rotateAxis: raxis,
       rotateDeg: rot, 
       // scale: [80, 80, 80],
       // camera: cam2,
+      camera: cam1,
+    });
+    renderer.updateObject({
+      pipelineId: pipe1,
+      objectId: obj2,
+      translate: [-1.5, 0, 0],
+      rotateAxis: raxis,
+      rotateDeg: rot + 90, 
       camera: cam1
     });
     // render to canvas

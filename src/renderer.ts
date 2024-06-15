@@ -580,6 +580,85 @@ class Renderer {
       pipelineIndex: id,
       indexBuffer,
       indexCount: indices?.length,
+      indexType: 'uint32',
+      instances: instances || 1,
+    }
+    pipe.objects.push(obj);
+    this.updateObject({ pipelineId, objectId:id });
+    return id;
+  }
+  /**
+   * Add new object to render
+   * 
+   * @param {number} pipelineId which shader pipeline to use for object
+   * @param {ArrayBuffer} verts
+   * @param {number} vertCount
+   * @param {ArrayBuffer} uvs
+   * @param {ArrayBuffer} normals
+   * @param {ArrayBuffer} indices indexing of vertices to render
+   * @param {number} indexCount
+   * @param {number} instances number of instances of object to render
+   * @returns {number} objectId
+   */
+  addObjectAsBuffers(
+    pipelineId: number,
+    verts: ArrayBuffer,
+    vertCount: number,
+    uvs?: ArrayBuffer,
+    normals?: ArrayBuffer,
+    indices?: ArrayBuffer,
+    indexCount?: number,
+    instances?: number,
+  ) {
+    if (!this.#device) throw new Error("Renderer not initialized");
+    // create vertex buffer
+    const vertexBuffer: GPUBuffer = this.#device.createBuffer({
+      label: "vertex-buffer",
+      size: verts.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    this.#device.queue.writeBuffer(vertexBuffer, 0, verts);
+    // create uv buffer
+    let uvMap = new ArrayBuffer(vertCount);
+    if (uvs && uvs?.byteLength > 0) uvMap = uvs;
+    const uvBuffer: GPUBuffer = this.#device.createBuffer({
+      label: "uv-buffer",
+      size: uvMap.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    this.#device.queue.writeBuffer(uvBuffer, 0, uvMap);
+    // create normal buffer
+    let normalMap = new ArrayBuffer(vertCount);
+    if (normals && normals.byteLength > 0) normalMap = normals;
+    const normalBuffer: GPUBuffer = this.#device.createBuffer({
+      label: "normal-buffer",
+      size: normalMap.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    this.#device.queue.writeBuffer(normalBuffer, 0, normalMap);
+    // create index buffer
+    let indexBuffer: GPUBuffer | undefined;
+    if (indices && indexCount && indices.byteLength > 0) {
+      indexBuffer = this.#device.createBuffer({
+        label: "index-buffer",
+        size: indices.byteLength,
+        usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+      });
+      this.#device.queue.writeBuffer(indexBuffer, 0, indices);
+    }
+    // save to cache
+    const pipe = this.pipelines[pipelineId];
+    const id = pipe.objects.length;
+    const obj: RenderObject = {
+      visible: true,
+      vertexBuffer,
+      uvBuffer,
+      normalBuffer,
+      vertexCount: vertCount,
+      pipelineIndex: id,
+      indexBuffer,
+      indexCount,
+      indexType: 'uint16',
       instances: instances || 1,
     }
     pipe.objects.push(obj);
@@ -702,7 +781,7 @@ class Renderer {
           pass.setBindGroup(1, pipeline.bindGroup1.base, offsets);
         }
         if (obj.indexBuffer && obj.indexCount) {
-          pass.setIndexBuffer(obj.indexBuffer, 'uint32');
+          pass.setIndexBuffer(obj.indexBuffer, obj.indexType);
           pass.drawIndexed(obj.indexCount, obj.instances || 1);
         } else {
           pass.draw(obj.vertexCount, obj.instances || 1);
