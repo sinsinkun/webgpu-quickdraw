@@ -20,6 +20,10 @@ use case.
 
 Some utility functions are included (like primitive shapes) for ease of use.
 
+<img src="https://sinsinkun.github.io/webgpu-quickdraw/screenshot3.png" width="400px" />
+
+Supports basic 3d model handling from .obj and .gltf files
+
 <img src="https://sinsinkun.github.io/webgpu-quickdraw/screenshot2.png" width="400px" />
 
 Transparency, MSAA, depth buffer, and texture mapping pre-included
@@ -102,6 +106,40 @@ fn vertexMain(input: VertIn) -> VertOut {
 fn fragmentMain(input: VertOut) -> @location(0) vec4f {
   return vec4f(input.normal, 1.0);
 }
+```
+
+Importing .obj files:
+```js
+// make pipeline
+const pipe1 = renderer.addPipeline(shader1, 1);
+
+// load model to convert obj data to shape data
+const model: Shape = await ModelLoader.loadObj(FILE_URL);
+const obj = renderer.addObject(pipe1, model.vertices, model.uvs, model.normals);
+```
+
+Importing .gtlf files:
+```js
+// make pipeline
+const pipe1 = renderer.addPipeline(shader1, 1);
+
+// read gtlf data independently
+// gtlf files contain much more data than just mesh data,
+// which will need to be handled separately from simply loading a mesh into GPU memory
+const gtlf: GltfData = await ModelLoader.loadGltf(FILE_URL);
+// grab the desired mesh from the gltf file, designated by mesh index
+// BASE_URL can be optionally provided where the .bin file is not accessed from root
+const model: BufferShape = await ModelLoader.loadGltfMesh(gtlf, 0, BASE_URL);
+// gltf data is loaded directly as buffer data
+const obj = renderer.addObjectAsBuffers(
+  pipe1,
+  model.vertices,
+  model.vertexCount,
+  model.uvs,
+  model.normals,
+  model.index,
+  model.indexCount
+);
 ```
 
 ### Features
