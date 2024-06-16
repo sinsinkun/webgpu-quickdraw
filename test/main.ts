@@ -214,7 +214,7 @@ async function example4(renderer: Renderer): Promise<{ update:Function, resize:F
   // object properties
   let rot: number = 0;
   // render pipeline
-  const pipe = renderer.addPipeline(shader1, 10);
+  const pipe = renderer.addPipeline(shader1, 10, { cullMode: 'back' });
   const cam = renderer.makeCamera("persp", { fovY: 60 });
   renderer.updateClearRGB(60, 60, 60);
   const obj2 = Primitives.rect(2.4, 2.4);
@@ -225,6 +225,10 @@ async function example4(renderer: Renderer): Promise<{ update:Function, resize:F
   const obj1Id = renderer.addObject(pipe, obj1.vertices, obj1.uvs, obj1.normals, obj1.index);
   const obj4 = Primitives.cylinder(2, 4, 32);
   const obj4Id = renderer.addObject(pipe, obj4.vertices, obj4.uvs, obj4.normals, obj4.index);
+  const obj5 = Primitives.tube(2, 1, 2, 16);
+  const obj5Id = renderer.addObject(pipe, obj5.vertices, obj5.uvs, obj5.normals, obj5.index);
+  const obj6 = Primitives.cube(3, 3, 3);
+  const obj6Id = renderer.addObject(pipe, obj6.vertices, obj6.uvs, obj6.normals, obj6.index);
 
   function update(redraw:boolean = false) {
     if (!redraw) rot += 1;
@@ -234,11 +238,28 @@ async function example4(renderer: Renderer): Promise<{ update:Function, resize:F
     renderer.updateObject({
       pipelineId: pipe,
       objectId: obj4Id,
-      translate: [-3, -2.5, 0],
+      translate: [-5.5, -5, -5],
       rotateAxis: [Math.sin(0.005 * rot), Math.cos(0.005 * rot), 0],
       rotateDeg: 140,
       camera: cam
     });
+    renderer.updateObject({
+      pipelineId: pipe,
+      objectId: obj5Id,
+      translate: [5.5, 5, -5],
+      rotateAxis: [1, -0.5, 0],
+      rotateDeg: 0.5 * rot,
+      camera: cam
+    });
+    renderer.updateObject({
+      pipelineId: pipe,
+      objectId: obj6Id,
+      translate: [5.5, -5, -5],
+      rotateAxis: [1, -0.5, 0],
+      rotateDeg: 0.5 * rot,
+      camera: cam
+    });
+
     renderer.render([pipe]);
   }
 

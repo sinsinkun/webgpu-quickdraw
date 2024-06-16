@@ -16,37 +16,37 @@ class Primitives {
     const d = depth ? depth/2 : width/2;
     const vertices: Array<[number, number, number]> = [
       // face front
-      [w,h,d],[w,-h,d],[-w,-h,d],
-      [-w,-h,d],[-w,h,d],[w,h,d],
+      [w,-h,d],[w,h,d],[-w,-h,d],
+      [-w,h,d],[-w,-h,d],[w,h,d],
       // face back
-      [-w,h,-d],[-w,-h,-d],[w,-h,-d],
-      [w,-h,-d],[w,h,-d],[-w,h,-d],
+      [-w,-h,-d],[-w,h,-d],[w,-h,-d],
+      [w,h,-d],[w,-h,-d],[-w,h,-d],
       // face left
-      [-w,h,d],[-w,-h,d],[-w,-h,-d],
-      [-w,-h,-d],[-w,h,-d],[-w,h,d],
+      [-w,-h,d],[-w,h,d],[-w,-h,-d],
+      [-w,h,-d],[-w,-h,-d],[-w,h,d],
       // face right
-      [w,h,-d],[w,-h,-d],[w,-h,d],
-      [w,-h,d],[w,h,d],[w,h,-d],
+      [w,-h,-d],[w,h,-d],[w,-h,d],
+      [w,h,d],[w,-h,d],[w,h,-d],
       // face up
-      [w,-h,d],[w,-h,-d],[-w,-h,-d],
-      [-w,-h,-d],[-w,-h,d],[w,-h,d],
+      [w,-h,-d],[w,-h,d],[-w,-h,-d],
+      [-w,-h,d],[-w,-h,-d],[w,-h,d],
       // face down
-      [w,h,-d],[w,h,d],[-w,h,d],
-      [-w,h,d],[-w,h,-d],[w,h,-d],
+      [w,h,d],[w,h,-d],[-w,h,d],
+      [-w,h,-d],[-w,h,d],[w,h,-d],
     ];
     const uvs: Array<[number, number]> = [
       // face front
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      [1,0],[1,1],[0,0],[0,1],[0,0],[1,1],
       // face back
-      [0,0],[0,1],[1,1],[1,1],[1,0],[0,0],
+      [0,1],[0,0],[1,1],[1,0],[1,1],[0,0],
       // face left
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      [1,0],[1,1],[0,0],[0,1],[0,0],[1,1],
       // face right
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      [1,0],[1,1],[0,0],[0,1],[0,0],[1,1],
       // face up
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      [1,0],[1,1],[0,0],[0,1],[0,0],[1,1],
       // face down
-      [1,1],[1,0],[0,0],[0,0],[0,1],[1,1],
+      [1,0],[1,1],[0,0],[0,1],[0,0],[1,1],
     ];
     const normals: Array<[number, number, number]> = [
       // face front
@@ -137,10 +137,11 @@ class Primitives {
     }
     // generate indexing
     for (let i=0; i<vertices.length-2; i++) {
-      index.push(i, i+1, i+2);
+      if (i % 2) index.push(i, i+1, i+2);
+      else index.push(i+1, i, i+2);
     }
     // final faces join back to first 2 vertices
-    index.push(vertices.length-2, vertices.length-1, 0);
+    index.push(vertices.length-1, vertices.length-2, 0);
     index.push(vertices.length-1, 0, 1);
 
     return { vertices, uvs, normals, index };
@@ -179,9 +180,9 @@ class Primitives {
       // bottom
       if (i % 2) index.push(i, i+2, 1);
       // top
-      else index.push(i, i+2, 0);
+      else index.push(i, 0, i+2);
     }
-    index.push(vertices.length-2, 2, 0);
+    index.push(vertices.length-2, 0, 2);
     index.push(vertices.length-1, 3, 1);
     // build sides
     const new0 = vertices.length;
@@ -204,14 +205,93 @@ class Primitives {
     }
     // generate indexing
     for (let i=new0; i<vertices.length-2; i++) {
-      index.push(i, i+1, i+2);
+      if (i % 2) index.push(i, i+1, i+2);
+      else index.push(i+1, i, i+2);
     }
 
     return { vertices, uvs, normals, index };
   }
-  // static tube() {
-  //   // todo
-  // }
+  static tube(outerRadius:number, innerRadius:number, height:number, sides:number): Shape {
+    if (sides < 2) throw new Error("Sides count must be greater than 2");
+    const vertices: Array<[number, number, number]> = [];
+    const uvs: Array<[number, number]> = [];
+    const normals: Array<[number, number, number]> = [];
+    const index: Array<number> = [];
+    const da = 2 * Math.PI / sides;
+    const dr = innerRadius / outerRadius;
+    const h = height/2;
+    let x0 = 1, z0 = 0;
+    // build top/bottom
+    for (let i=0; i<sides; i++) {
+      const p1: [number, number, number] = [x0 * outerRadius, h, z0 * outerRadius];
+      const p2: [number, number, number] = [x0 * outerRadius, -h, z0 * outerRadius];
+      const p3: [number, number, number] = [x0 * innerRadius, h, z0 * innerRadius];
+      const p4: [number, number, number] = [x0 * innerRadius, -h, z0 * innerRadius];
+      const u1: [number, number] = [(1 + x0)/2, (1 + z0)/2];
+      const u2: [number, number] = [(1 + x0)/2, (1 + z0)/2];
+      const u3: [number, number] = [(1 + dr * x0)/2, (1 + dr * z0)/2];
+      const u4: [number, number] = [(1 + dr * x0)/2, (1 + dr * z0)/2];
+      // add points
+      vertices.push(p1, p2, p3, p4);
+      uvs.push(u1, u2, u3, u4);
+      normals.push([0,1,0],[0,-1,0]);
+      // prepare next slice
+      let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
+      let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
+      x0 = 0 + Number(x1.toFixed(6));
+      z0 = 0 + Number(z1.toFixed(6));
+    }
+    // generate indexing
+    for (let i=0; i<vertices.length-5; i+=2) {
+      if (i % 4) {
+        index.push(i+2, i, i+4);
+        index.push(i+1, i+3, i+5);
+      } else {
+        index.push(i, i+2, i+4);
+        index.push(i+3, i+1, i+5);
+      }
+    }
+    // final faces join back to first 2 vertices
+    index.push(vertices.length-4, vertices.length-2, 0);
+    index.push(0, vertices.length-2, 2);
+    index.push(vertices.length-1, vertices.length-3, 1);
+    index.push(vertices.length-1, 1, 3);
+    // build sides
+    const new0 = vertices.length;
+    x0 = -1;
+    z0 = 0;
+    for (let i=0; i<sides+1; i++) {
+      const p1: [number, number, number] = [x0 * outerRadius, h, z0 * outerRadius];
+      const p2: [number, number, number] = [x0 * innerRadius, h, z0 * innerRadius];
+      const p3: [number, number, number] = [x0 * outerRadius, -h, z0 * outerRadius];
+      const p4: [number, number, number] = [x0 * innerRadius, -h, z0 * innerRadius];
+      const u1: [number, number] = [i/sides, 1];
+      const u2: [number, number] = [i/sides, 1];
+      const u3: [number, number] = [i/sides, 0];
+      const u4: [number, number] = [i/sides, 0];
+      // add points
+      vertices.push(p1, p2, p3, p4);
+      uvs.push(u1, u2, u3, u4);
+      normals.push([0,1,0],[0,-1,0]);
+      // prepare next slice
+      let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
+      let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
+      x0 = 0 + Number(x1.toFixed(6));
+      z0 = 0 + Number(z1.toFixed(6));
+    }
+    // generate indexing
+    for (let i=new0; i<vertices.length-4; i+=2) {
+      if (i % 4) {
+        index.push(i, i+2, i+4);
+        index.push(i+3, i+1, i+5);
+      } else {
+        index.push(i+2, i, i+4);
+        index.push(i+1, i+3, i+5);
+      }
+    }
+
+    return { vertices, uvs, normals, index };
+  }
   // static cone() {
   //   // todo
   // }

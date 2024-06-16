@@ -161,7 +161,8 @@ const obj = renderer.addObjectAsBuffers(
 
 ### Changelog
 <b>0.1.9</b>
-- Added new primitives (torus2d, cylinder)
+- Added new primitives (torus2d, cylinder, pipe)
+- Fixed vertex ordering for cube primitive
 
 <b>0.1.8</b>
 - Added basic 3d model loading (.obj/.gltf files)
