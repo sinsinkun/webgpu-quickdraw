@@ -188,7 +188,7 @@ class Primitives {
     index.push(vertices.length-1, 3, 1);
     // build sides
     const new0 = vertices.length;
-    x0 = -1;
+    x0 = 1;
     z0 = 0;
     for (let i=0; i<sides+1; i++) {
       const p1: [number, number, number] = [x0 * radius, h, z0 * radius];
@@ -260,7 +260,7 @@ class Primitives {
     index.push(vertices.length-1, 1, 3);
     // build sides
     const new0 = vertices.length;
-    x0 = -1;
+    x0 = 1;
     z0 = 0;
     for (let i=0; i<sides+1; i++) {
       const p1: [number, number, number] = [x0 * outerRadius, h, z0 * outerRadius];

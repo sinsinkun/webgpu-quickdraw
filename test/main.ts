@@ -225,7 +225,7 @@ async function example4(renderer: Renderer): Promise<{ update:Function, resize:F
   const obj1Id = renderer.addObject(pipe, obj1.vertices, obj1.uvs, obj1.normals, obj1.index);
   const obj4 = Primitives.cylinder(2, 4, 32);
   const obj4Id = renderer.addObject(pipe, obj4.vertices, obj4.uvs, obj4.normals, obj4.index);
-  const obj5 = Primitives.tube(2, 1, 2, 16);
+  const obj5 = Primitives.tube(2, 1, 2, 8);
   const obj5Id = renderer.addObject(pipe, obj5.vertices, obj5.uvs, obj5.normals, obj5.index);
   const obj6 = Primitives.cube(3, 3, 3);
   const obj6Id = renderer.addObject(pipe, obj6.vertices, obj6.uvs, obj6.normals, obj6.index);
