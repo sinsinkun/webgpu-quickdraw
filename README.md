@@ -164,7 +164,7 @@ const obj = renderer.addObjectAsBuffers(
 - Added new primitives (torus2d, cylinder, pipe, cone, sphere)
 - Fixed vertex ordering for cube primitive
 - Added support for intaking 2 textures
-- **BREAKING CHANGE**: swapped texture and texture sampler binding positions
+- **\*BREAKING CHANGE**: swapped texture and texture sampler binding positions
 
 <b>0.1.8</b>
 - Added basic 3d model loading (.obj/.gltf files)
