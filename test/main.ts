@@ -232,7 +232,7 @@ async function example4(renderer: Renderer): Promise<{ update:Function, resize:F
   const obj6Id = renderer.addObject(pipe, obj6.vertices, obj6.uvs, obj6.normals, obj6.index);
   const obj7 = Primitives.cone(2, 3, 6);
   const obj7Id = renderer.addObject(pipe, obj7.vertices, obj7.uvs, obj7.normals, obj7.index);
-  const obj8 = Primitives.sphere(2, 12, 6);
+  const obj8 = Primitives.sphere(2, 32, 16);
   const obj8Id = renderer.addObject(pipe, obj8.vertices, obj8.uvs, obj8.normals, obj8.index);
 
   function update(redraw:boolean = false) {
