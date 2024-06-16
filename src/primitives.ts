@@ -29,7 +29,7 @@ class Primitives {
     return { vertices, uvs, normals }
   }
   static regPolygon(radius:number, sides:number, zIndex:number = 0): Shape {
-    if (sides < 2) throw new Error("Sides count must be greater than 2");
+    if (sides < 3) throw new Error("Sides count must be greater than 2");
     const vertices: Array<[number, number, number]> = [];
     const uvs: Array<[number, number]> = [];
     const normals: Array<[number, number, number]> = [];
@@ -58,7 +58,7 @@ class Primitives {
     return { vertices, uvs, normals };
   }
   static torus2d(outerRadius:number, innerRadius:number, sides:number, zIndex:number = 0): Shape {
-    if (sides < 2) throw new Error("Sides count must be greater than 2");
+    if (sides < 3) throw new Error("Sides count must be greater than 2");
     const vertices: Array<[number, number, number]> = [];
     const uvs: Array<[number, number]> = [];
     const normals: Array<[number, number, number]> = [];
@@ -149,7 +149,7 @@ class Primitives {
     return { vertices, uvs, normals }
   }
   static cylinder(radius:number, height:number, sides: number): Shape {
-    if (sides < 2) throw new Error("Sides count must be greater than 2");
+    if (sides < 3) throw new Error("Sides count must be greater than 2");
     const vertices: Array<[number, number, number]> = [];
     const uvs: Array<[number, number]> = [];
     const normals: Array<[number, number, number]> = [];
@@ -214,7 +214,7 @@ class Primitives {
     return { vertices, uvs, normals, index };
   }
   static tube(outerRadius:number, innerRadius:number, height:number, sides:number): Shape {
-    if (sides < 2) throw new Error("Sides count must be greater than 2");
+    if (sides < 3) throw new Error("Sides count must be greater than 2");
     const vertices: Array<[number, number, number]> = [];
     const uvs: Array<[number, number]> = [];
     const normals: Array<[number, number, number]> = [];
@@ -295,7 +295,7 @@ class Primitives {
     return { vertices, uvs, normals, index };
   }
   static cone(radius:number, height:number, sides:number): Shape {
-    if (sides < 2) throw new Error("Sides count must be greater than 2");
+    if (sides < 3) throw new Error("Sides count must be greater than 2");
     const vertices: Array<[number, number, number]> = [];
     const uvs: Array<[number, number]> = [];
     const normals: Array<[number, number, number]> = [];
