@@ -161,9 +161,8 @@ const obj = renderer.addObjectAsBuffers(
 
 ### Changelog
 <b>0.2.0</b>
-- Added new primitives (torus2d, cylinder, pipe, cone)
+- Added new primitives (torus2d, cylinder, pipe, cone, sphere)
 - Fixed vertex ordering for cube primitive
-- Update to error checking on primitives
 - Added support for intaking 2 textures
 - **BREAKING CHANGE**: swapped texture and texture sampler binding positions
 

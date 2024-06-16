@@ -1,3 +1,4 @@
+import { Vec } from './index';
 import type { Shape } from './index';
 
 /**
@@ -354,9 +355,60 @@ class Primitives {
 
     return { vertices, uvs, normals, index };
   }
-  // static sphere() {
-  //   // todo
-  // }
+  static sphere(radius:number, sides:number, slices:number): Shape {
+    if (sides < 3) throw new Error("Sides count must be greater than 2");
+    const vertices: Array<[number, number, number]> = [];
+    const uvs: Array<[number, number]> = [];
+    const normals: Array<[number, number, number]> = [];
+    const index: Array<number> = [];
+    // add top point
+    vertices.push([0, radius, 0]);
+    uvs.push([0,1]);
+    normals.push([0,1,0]);
+    // generate points per slice
+    for (let i=0; i<slices - 1; i++) {
+      const phi = Math.PI * (i+1) / slices;
+      for (let j=0; j<sides; j++) {
+        const theta = 2 * Math.PI * j / sides;
+        const x = Math.sin(phi) * Math.cos(theta) * radius;
+        const y = Math.cos(phi) * radius;
+        const z = Math.sin(phi) * Math.sin(theta) * radius;
+        const p: [number, number, number] = [x, y, z];
+        const u: [number, number] = [(1 + x)/2, (1 + y)/2];
+        // add points
+        vertices.push(p);
+        uvs.push(u);
+        let n = Vec.normalize(Vec.float(x, y, z));
+        normals.push([n[0], n[1], n[2]]);
+      }
+    }
+    // add bottom point
+    vertices.push([0, -radius, 0]);
+    uvs.push([1,0]);
+    normals.push([0,-1,0]);
+    // generate top/bottom index
+    for (let i=0; i < sides; i++) {
+      let i0 = i + 1, i1 = (i + 1) % sides + 1;
+      index.push(0, i1, i0);
+      i0 = i + sides * (slices - 2) + 1;
+      i1 = (i + 1) % sides + sides * (slices - 2) + 1;
+      index.push(vertices.length-1, i0, i1);
+    }
+    // generate slice indices
+    for (let j = 0; j < slices - 2; j++) {
+      let j0 = j * sides + 1;
+      let j1 = (j + 1) * sides + 1;
+      for (let i=0; i < sides; i++) {
+        let i0 = j0 + i;
+        let i1 = j0 + (i + 1) % sides;
+        let i2 = j1 + (i + 1) % sides;
+        let i3 = j1 + i;
+        index.push(i0, i1, i2, i2, i3, i0);
+      }
+    }
+
+    return { vertices, uvs, normals, index };
+  }
   // static torus() {
   //   // todo
   // }
