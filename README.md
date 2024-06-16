@@ -160,6 +160,9 @@ const obj = renderer.addObjectAsBuffers(
 - support for .obj/.gltf file loading
 
 ### Changelog
+<b>0.1.9</b>
+- Added new primitives (torus2d, cylinder)
+
 <b>0.1.8</b>
 - Added basic 3d model loading (.obj/.gltf files)
 - Re-exported basic shader with custom uniforms as extendedBasic.wgsl

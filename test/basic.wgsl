@@ -35,7 +35,8 @@ fn fragmentMain(input: VertOut) -> @location(0) vec4f {
   let n = (1.0 + input.normal) / 2.0;
   var tx = textureSample(texture, txSampler, input.uv);
   if (tx.a < 0.0001) {
-    return vec4f(n, 1.0);
+    let o = vec4f(input.uv, 0.5, 1.0);
+    return floor(o * 8) / 8;
   }
   return tx;
 }

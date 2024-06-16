@@ -209,12 +209,57 @@ async function example3(renderer: Renderer): Promise<{ update:Function, resize:F
   return {update, resize };
 }
 
+// testing primitives
+async function example4(renderer: Renderer): Promise<{ update:Function, resize:Function }> {
+  // object properties
+  let rot: number = 0;
+  // render pipeline
+  const pipe = renderer.addPipeline(shader1, 10);
+  const cam = renderer.makeCamera("persp", { fovY: 60 });
+  renderer.updateClearRGB(60, 60, 60);
+  const obj2 = Primitives.rect(2.4, 2.4);
+  const obj2Id = renderer.addObject(pipe, obj2.vertices, obj2.uvs, obj2.normals);
+  const obj3 = Primitives.regPolygon(1.2, 16);
+  const obj3Id = renderer.addObject(pipe, obj3.vertices, obj3.uvs, obj3.normals);
+  const obj1 = Primitives.torus2d(1.2, 0.8, 6);
+  const obj1Id = renderer.addObject(pipe, obj1.vertices, obj1.uvs, obj1.normals, obj1.index);
+  const obj4 = Primitives.cylinder(2, 4, 32);
+  const obj4Id = renderer.addObject(pipe, obj4.vertices, obj4.uvs, obj4.normals, obj4.index);
+
+  function update(redraw:boolean = false) {
+    if (!redraw) rot += 1;
+    renderer.updateObject({ pipelineId: pipe, objectId: obj1Id, translate: [-3, 4, 0], camera: cam});
+    renderer.updateObject({ pipelineId: pipe, objectId: obj2Id, translate: [-4.5, 4.5, 0], camera: cam});
+    renderer.updateObject({ pipelineId: pipe, objectId: obj3Id, translate: [-4, 3, 0], camera: cam});
+    renderer.updateObject({
+      pipelineId: pipe,
+      objectId: obj4Id,
+      translate: [-3, -2.5, 0],
+      rotateAxis: [Math.sin(0.005 * rot), Math.cos(0.005 * rot), 0],
+      rotateDeg: 140,
+      camera: cam
+    });
+    renderer.render([pipe]);
+  }
+
+  function resize() {
+    if (canvas) {
+      canvas.width = canvas.width === 680 ? 512 : 680;
+      renderer.updateCanvas(canvas.width, canvas.height);
+      update(true);
+    }
+  }
+
+  update(true);
+  return { update, resize };
+}
+
 async function main() {
   try {
     log("Starting Quickdraw");
     // initialize renderer
     const renderer = await Renderer.init(canvas);
-    const { update, resize } = await example3(renderer);
+    const { update, resize } = await example4(renderer);
     update(true);
     log("Drew to canvas");
   
