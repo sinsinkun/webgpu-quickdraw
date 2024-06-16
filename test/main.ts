@@ -4,6 +4,7 @@ import shader1 from './basic.wgsl?raw';
 import shader2 from "./showtx.wgsl?raw";
 import shader3 from "./instanced.wgsl?raw";
 import shader4 from "./extendedBasic.wgsl?raw";
+import shader5 from "./showuv.wgsl?raw";
 
 // const
 const BASE_URL: string = import.meta.env.BASE_URL;
@@ -214,7 +215,7 @@ async function example4(renderer: Renderer): Promise<{ update:Function, resize:F
   // object properties
   let rot: number = 0;
   // render pipeline
-  const pipe = renderer.addPipeline(shader1, 10, { cullMode: 'back' });
+  const pipe = renderer.addPipeline(shader5, 10, { cullMode: 'back' });
   const cam = renderer.makeCamera("persp", { fovY: 60 });
   renderer.updateClearRGB(60, 60, 60);
   const obj2 = Primitives.rect(2.4, 2.4);
@@ -265,7 +266,7 @@ async function example4(renderer: Renderer): Promise<{ update:Function, resize:F
       pipelineId: pipe,
       objectId: obj7Id,
       translate: [3.5, -1, -3],
-      rotateAxis: [0, 1, 0.5],
+      rotateAxis: [1, 1, 0.5],
       rotateDeg: 0.5 * rot,
       camera: cam
     });
