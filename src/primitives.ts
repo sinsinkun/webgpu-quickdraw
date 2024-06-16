@@ -236,7 +236,7 @@ class Primitives {
       // add points
       vertices.push(p1, p2, p3, p4);
       uvs.push(u1, u2, u3, u4);
-      normals.push([0,1,0],[0,-1,0]);
+      normals.push([0,1,0],[0,-1,0],[0,1,0],[0,-1,0]);
       // prepare next slice
       let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
       let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
@@ -274,7 +274,7 @@ class Primitives {
       // add points
       vertices.push(p1, p2, p3, p4);
       uvs.push(u1, u2, u3, u4);
-      normals.push([0,1,0],[0,-1,0]);
+      normals.push([x0,0,z0],[x0,0,z0],[x0,0,z0],[x0,0,z0]);
       // prepare next slice
       let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
       let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
@@ -294,9 +294,66 @@ class Primitives {
 
     return { vertices, uvs, normals, index };
   }
-  // static cone() {
-  //   // todo
-  // }
+  static cone(radius:number, height:number, sides:number): Shape {
+    if (sides < 2) throw new Error("Sides count must be greater than 2");
+    const vertices: Array<[number, number, number]> = [];
+    const uvs: Array<[number, number]> = [];
+    const normals: Array<[number, number, number]> = [];
+    const index: Array<number> = [];
+    const da = 2 * Math.PI / sides;
+    let x0 = 1, z0 = 0;
+    // build top
+    vertices.push([0, height, 0]);
+    uvs.push([0.5, 1]);
+    normals.push([0, 1, 0]);
+    // build sides
+    for (let i=0; i<sides+1; i++) {
+      const p: [number, number, number] = [x0 * radius, 0, z0 * radius];
+      const u: [number, number] = [i/sides, 0];
+      // add points
+      vertices.push(p);
+      uvs.push(u);
+      normals.push([x0,0,z0]);
+      // prepare next slice
+      let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
+      let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
+      x0 = 0 + Number(x1.toFixed(6));
+      z0 = 0 + Number(z1.toFixed(6));
+    }
+    // generate indexing
+    for (let i=1; i<vertices.length-1; i++) {
+      index.push(i+1, i, 0);
+    }
+    // build bottom center
+    vertices.push([0, 0, 0]);
+    uvs.push([0.5, 0.5]);
+    normals.push([0, -1, 0]);
+    // build bottom
+    const new0 = vertices.length;
+    x0 = 1;
+    z0 = 0;
+    for (let i=0; i<sides; i++) {
+      const p: [number, number, number] = [x0 * radius, 0, z0 * radius];
+      const u: [number, number] = [(1 + x0)/2, (1 + z0)/2];
+      // add points
+      vertices.push(p);
+      uvs.push(u);
+      normals.push([0,-1,0]);
+      // prepare next slice
+      let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
+      let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
+      x0 = 0 + Number(x1.toFixed(6));
+      z0 = 0 + Number(z1.toFixed(6));
+    }
+    // generate index
+    for (let i=new0; i<vertices.length; i++) {
+      index.push(i, i+1, new0-1);
+    }
+    // final face joins back to first vertex
+    index.push(vertices.length-1, new0, new0-1);
+
+    return { vertices, uvs, normals, index };
+  }
   // static sphere() {
   //   // todo
   // }
