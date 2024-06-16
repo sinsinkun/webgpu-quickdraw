@@ -1,6 +1,6 @@
 @group(0) @binding(0) var<uniform> mvp: MVP;
-@group(0) @binding(1) var texture: texture_2d<f32>;
-@group(0) @binding(2) var txSampler: sampler;
+@group(0) @binding(1) var txSampler: sampler;
+@group(0) @binding(2) var texture: texture_2d<f32>;
 
 // additional custom uniform bindings
 @group(1) @binding(0) var<uniform> ext: vec3f;

@@ -298,16 +298,21 @@ class Renderer {
           visibility: GPUShaderStage.VERTEX,
           buffer: { hasDynamicOffset:true }
         },
-        { // texture
+        { // texture sampler
           binding: 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type:'filtering' }
+        },
+        { // texture 1
+          binding: 2,
           visibility: GPUShaderStage.FRAGMENT,
           texture: {}
         },
-        { // texture sampler
-          binding: 2,
+        { // texture 2
+          binding: 3,
           visibility: GPUShaderStage.FRAGMENT,
-          sampler: { type:'filtering' }
-        }
+          texture: {}
+        },
       ]
     });
     bindGroups.push(bindGroup0Layout);
@@ -376,9 +381,10 @@ class Renderer {
       }
     });
     // create bind group
-    let tx;
-    if (options && typeof options.textureId === 'number') tx = this.textures[options.textureId];
-    const bindGroup0 = this.addBindGroup0(pipeline, maxObjCount, tx);
+    let tx1, tx2;
+    if (options && typeof options.texture1Id === 'number') tx1 = this.textures[options.texture1Id];
+    if (options && typeof options.texture2Id === 'number') tx2 = this.textures[options.texture2Id];
+    const bindGroup0 = this.addBindGroup0(pipeline, maxObjCount, tx1, tx2);
     const bindGroup1 = options?.uniforms ? this.addBindGroup1(pipeline, maxObjCount, options.uniforms) : undefined;
     // add to cache
     const pipe: RenderPipeline = {
@@ -392,7 +398,7 @@ class Renderer {
     return (this.pipelines.length - 1);
   }
   // create default bind group
-  addBindGroup0(pipeline: GPURenderPipeline, maxObjCount:number, texture?:GPUTexture): RenderBindGroup {
+  addBindGroup0(pipeline: GPURenderPipeline, maxObjCount:number, texture1?:GPUTexture, texture2?:GPUTexture): RenderBindGroup {
     // create uniform buffers
     const minStrideSize: number = this.limits.minUniformBufferOffsetAlignment;
     const mvpBuffer: GPUBuffer = this.#device.createBuffer({
@@ -400,12 +406,20 @@ class Renderer {
       size: minStrideSize * maxObjCount,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
-    // placeholder texture
-    if (!texture) {
-      texture = this.#device.createTexture({
+    // placeholder textures
+    if (!texture1) {
+      texture1 = this.#device.createTexture({
         label: `texture-cache-placeholder`,
         format: 'rgba8unorm',
-        size: [10, 10],
+        size: [1, 1],
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+    }
+    if (!texture2) {
+      texture2 = this.#device.createTexture({
+        label: `texture-cache-placeholder`,
+        format: 'rgba8unorm',
+        size: [1, 1],
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
       });
     }
@@ -429,8 +443,9 @@ class Renderer {
       layout: pipeline.getBindGroupLayout(0),
       entries: [
         {binding: 0, resource: { buffer: mvpBuffer, size: mvpSize }},
-        {binding: 1, resource: texture.createView()},
-        {binding: 2, resource: sampler},
+        {binding: 1, resource: sampler},
+        {binding: 2, resource: texture1.createView()},
+        {binding: 3, resource: texture2.createView()},
       ]
     });
     const out: RenderBindGroup = {

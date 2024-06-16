@@ -1,6 +1,6 @@
 @group(0) @binding(0) var<uniform> mvp: MVP;
-@group(0) @binding(1) var texture: texture_2d<f32>;
-@group(0) @binding(2) var txSampler: sampler;
+@group(0) @binding(1) var txSampler: sampler;
+@group(0) @binding(2) var texture: texture_2d<f32>;
 
 struct MVP {
   model: mat4x4<f32>,

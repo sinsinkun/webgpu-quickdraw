@@ -1,6 +1,4 @@
 @group(0) @binding(0) var<uniform> mvp: MVP;
-@group(0) @binding(1) var texture: texture_2d<f32>;
-@group(0) @binding(2) var txSampler: sampler;
 
 struct MVP {
   model: mat4x4<f32>,
@@ -32,11 +30,6 @@ fn vertexMain(input: VertIn) -> VertOut {
 
 @fragment
 fn fragmentMain(input: VertOut) -> @location(0) vec4f {
-  let n = (1.0 + input.normal) / 2.0;
-  var tx = textureSample(texture, txSampler, input.uv);
-  if (tx.a < 0.0001) {
-    let o = vec4f(input.uv, 0.5, 1.0);
-    return floor(o * 8) / 8;
-  }
-  return tx;
+  let o = vec4f(input.uv, 0.5, 1.0);
+  return floor(o * 8) / 8;
 }

@@ -151,7 +151,8 @@ export interface UniformDescription {
 
 // additional options when creating a pipeline
 export interface PipelineOptions {
-  textureId?: number,
+  texture1Id?: number,
+  texture2Id?: number,
   cullMode?: 'back' | 'front' | 'none',
   uniforms?: Array<UniformDescription>,
   vertexFunction?: string,

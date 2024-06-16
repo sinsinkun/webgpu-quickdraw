@@ -35,8 +35,8 @@ async function example1(renderer: Renderer): Promise<{ update:Function, resize:F
     { bindSlot: 0, visibility: 'fragment', type: 'vec3f' },
     { bindSlot: 1, visibility: 'fragment', type: 'f32' }
   ]
-  const pipe1 = renderer.addPipeline(shader2, 10, { textureId: tx2 });
-  const pipe2 = renderer.addPipeline(shader4, 100, { textureId: tx1, uniforms:custom });
+  const pipe1 = renderer.addPipeline(shader2, 10, { texture1Id: tx2 });
+  const pipe2 = renderer.addPipeline(shader4, 100, { texture1Id: tx1, uniforms:custom });
 
   // create pcamera
   const cam1: Camera = renderer.makeCamera("persp", { fovY:80, translate:[0,0,300] });
