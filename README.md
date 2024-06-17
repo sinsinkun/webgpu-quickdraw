@@ -160,6 +160,9 @@ const obj = renderer.addObjectAsBuffers(
 - support for .obj/.gltf file loading
 
 ### Changelog
+<b>0.2.2</b>
+- Flipped vertical UV value on bottom face of cylinder/pipe/cone
+
 <b>0.2.1</b>
 - Added hemisphere primitive
 - Improved default UV mapping on sphere

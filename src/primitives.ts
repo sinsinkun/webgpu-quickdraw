@@ -163,7 +163,7 @@ class Primitives {
       const p1: [number, number, number] = [x * radius, h, z * radius];
       const p2: [number, number, number] = [x * radius, -h, z * radius];
       const u1: [number, number] = [(1 + x)/2, (1 + z)/2];
-      const u2: [number, number] = [(1 + x)/2, (1 + z)/2];
+      const u2: [number, number] = [(1 + x)/2, (1 - z)/2];
       // add points
       vertices.push(p1, p2);
       uvs.push(u1, u2);
@@ -219,9 +219,9 @@ class Primitives {
       const p3: [number, number, number] = [x * innerRadius, h, z * innerRadius];
       const p4: [number, number, number] = [x * innerRadius, -h, z * innerRadius];
       const u1: [number, number] = [(1 + x)/2, (1 + z)/2];
-      const u2: [number, number] = [(1 + x)/2, (1 + z)/2];
+      const u2: [number, number] = [(1 + x)/2, (1 - z)/2];
       const u3: [number, number] = [(1 + dr * x)/2, (1 + dr * z)/2];
-      const u4: [number, number] = [(1 + dr * x)/2, (1 + dr * z)/2];
+      const u4: [number, number] = [(1 + dr * x)/2, (1 - dr * z)/2];
       // add points
       vertices.push(p1, p2, p3, p4);
       uvs.push(u1, u2, u3, u4);
@@ -311,7 +311,7 @@ class Primitives {
       const x = Math.cos(theta);
       const z = Math.sin(theta);
       const p: [number, number, number] = [x * radius, 0, z * radius];
-      const u: [number, number] = [(1 + x)/2, (1 + z)/2];
+      const u: [number, number] = [(1 + x)/2, (1 - z)/2];
       // add points
       vertices.push(p);
       uvs.push(u);
