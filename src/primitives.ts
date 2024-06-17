@@ -1,4 +1,3 @@
-import { Vec } from './index';
 import type { Shape } from './index';
 
 /**
@@ -370,16 +369,15 @@ class Primitives {
       const phi = Math.PI * (i+1) / slices;
       for (let j=0; j<sides; j++) {
         const theta = 2 * Math.PI * j / sides;
-        const x = Math.sin(phi) * Math.cos(theta) * radius;
-        const y = Math.cos(phi) * radius;
-        const z = Math.sin(phi) * Math.sin(theta) * radius;
-        const p: [number, number, number] = [x, y, z];
+        const x = Math.sin(phi) * Math.cos(theta);
+        const y = Math.cos(phi);
+        const z = Math.sin(phi) * Math.sin(theta);
+        const p: [number, number, number] = [x * radius, y * radius, z * radius];
         const u: [number, number] = [(1 + x)/2, (1 + y)/2];
         // add points
         vertices.push(p);
         uvs.push(u);
-        let n = Vec.normalize(Vec.float(x, y, z));
-        normals.push([n[0], n[1], n[2]]);
+        normals.push([x,y,z]);
       }
     }
     // add bottom point
