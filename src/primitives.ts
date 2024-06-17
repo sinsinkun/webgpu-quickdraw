@@ -429,7 +429,7 @@ class Primitives {
       const x = Math.cos(theta);
       const z = Math.sin(theta);
       const p: [number, number, number] = [x * radius, 0, z * radius];
-      const u: [number, number] = [(1 + x)/2, (1 + z)/2];
+      const u: [number, number] = [(1 + x)/2, (1 - z)/2];
       // add points
       vertices.push(p);
       uvs.push(u);
