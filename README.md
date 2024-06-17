@@ -160,6 +160,11 @@ const obj = renderer.addObjectAsBuffers(
 - support for .obj/.gltf file loading
 
 ### Changelog
+<b>0.2.1</b>
+- Added hemisphere primitive
+- Improved default UV mapping on sphere
+- Improved vertex generation efficiency for other primitives
+
 <b>0.2.0</b>
 - Added new primitives (torus2d, cylinder, pipe, cone, sphere)
 - Fixed vertex ordering for cube primitive

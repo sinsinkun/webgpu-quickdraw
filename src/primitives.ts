@@ -63,24 +63,20 @@ class Primitives {
     const uvs: Array<[number, number]> = [];
     const normals: Array<[number, number, number]> = [];
     const index: Array<number> = [];
-    const da = 2 * Math.PI / sides;
     const dr = innerRadius / outerRadius;
-    let x0 = 1, y0 = 0;
     // build points
     for (let i=0; i<sides; i++) {
-      const p1: [number, number, number] = [x0 * outerRadius, y0 * outerRadius, zIndex];
-      const p2: [number, number, number] = [x0 * innerRadius, y0 * innerRadius, zIndex];
-      const u1: [number, number] = [(1 + x0)/2, (1 + y0)/2];
-      const u2: [number, number] = [(1 + dr * x0)/2, (1 + dr * y0)/2];
+      const theta = 2 * Math.PI * i / sides;
+      const x = Math.cos(theta);
+      const y = Math.sin(theta);
+      const p1: [number, number, number] = [x * outerRadius, y * outerRadius, zIndex];
+      const p2: [number, number, number] = [x * innerRadius, y * innerRadius, zIndex];
+      const u1: [number, number] = [(1 + x)/2, (1 + y)/2];
+      const u2: [number, number] = [(1 + dr * x)/2, (1 + dr * y)/2];
       // add points
       vertices.push(p1, p2);
       uvs.push(u1, u2);
       normals.push([0,0,1],[0,0,1]);
-      // prepare next slice
-      let x1 = Math.cos(da) * x0 - Math.sin(da) * y0;
-      let y1 = Math.cos(da) * y0 + Math.sin(da) * x0;
-      x0 = 0 + Number(x1.toFixed(6));
-      y0 = 0 + Number(y1.toFixed(6));
     }
     // generate indexing
     for (let i=0; i<vertices.length-2; i++) {
@@ -154,28 +150,24 @@ class Primitives {
     const uvs: Array<[number, number]> = [];
     const normals: Array<[number, number, number]> = [];
     const index: Array<number> = [];
-    const da = 2 * Math.PI / sides;
     const h = height/2;
-    let x0 = 1, z0 = 0;
     // build top/bottom center
     vertices.push([0, h, 0], [0, -h, 0]);
     uvs.push([0.5, 0.5], [0.5, 0.5]);
     normals.push([0, 1, 0],[0, -1, 0]);
     // build top/bottom
     for (let i=0; i<sides; i++) {
-      const p1: [number, number, number] = [x0 * radius, h, z0 * radius];
-      const p2: [number, number, number] = [x0 * radius, -h, z0 * radius];
-      const u1: [number, number] = [(1 + x0)/2, (1 + z0)/2];
-      const u2: [number, number] = [(1 + x0)/2, (1 + z0)/2];
+      const theta = 2 * Math.PI * i / sides;
+      const x = Math.cos(theta);
+      const z = Math.sin(theta);
+      const p1: [number, number, number] = [x * radius, h, z * radius];
+      const p2: [number, number, number] = [x * radius, -h, z * radius];
+      const u1: [number, number] = [(1 + x)/2, (1 + z)/2];
+      const u2: [number, number] = [(1 + x)/2, (1 + z)/2];
       // add points
       vertices.push(p1, p2);
       uvs.push(u1, u2);
       normals.push([0,1,0],[0,-1,0]);
-      // prepare next slice
-      let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
-      let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
-      x0 = 0 + Number(x1.toFixed(6));
-      z0 = 0 + Number(z1.toFixed(6));
     }
     // generate indexing
     for (let i=2; i<vertices.length-2; i++) {
@@ -188,22 +180,18 @@ class Primitives {
     index.push(vertices.length-1, 3, 1);
     // build sides
     const new0 = vertices.length;
-    x0 = 1;
-    z0 = 0;
     for (let i=0; i<sides+1; i++) {
-      const p1: [number, number, number] = [x0 * radius, h, z0 * radius];
-      const p2: [number, number, number] = [x0 * radius, -h, z0 * radius];
+      const theta = 2 * Math.PI * i / sides;
+      const x = Math.cos(theta);
+      const z = Math.sin(theta);
+      const p1: [number, number, number] = [x * radius, h, z * radius];
+      const p2: [number, number, number] = [x * radius, -h, z * radius];
       const u1: [number, number] = [i/sides, 1];
       const u2: [number, number] = [i/sides, 0];
       // add points
       vertices.push(p1, p2);
       uvs.push(u1, u2);
-      normals.push([x0,0,z0],[x0,0,z0]);
-      // prepare next slice
-      let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
-      let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
-      x0 = 0 + Number(x1.toFixed(6));
-      z0 = 0 + Number(z1.toFixed(6));
+      normals.push([x,0,z],[x,0,z]);
     }
     // generate indexing
     for (let i=new0; i<vertices.length-2; i++) {
@@ -219,29 +207,25 @@ class Primitives {
     const uvs: Array<[number, number]> = [];
     const normals: Array<[number, number, number]> = [];
     const index: Array<number> = [];
-    const da = 2 * Math.PI / sides;
     const dr = innerRadius / outerRadius;
     const h = height/2;
-    let x0 = 1, z0 = 0;
     // build top/bottom
     for (let i=0; i<sides; i++) {
-      const p1: [number, number, number] = [x0 * outerRadius, h, z0 * outerRadius];
-      const p2: [number, number, number] = [x0 * outerRadius, -h, z0 * outerRadius];
-      const p3: [number, number, number] = [x0 * innerRadius, h, z0 * innerRadius];
-      const p4: [number, number, number] = [x0 * innerRadius, -h, z0 * innerRadius];
-      const u1: [number, number] = [(1 + x0)/2, (1 + z0)/2];
-      const u2: [number, number] = [(1 + x0)/2, (1 + z0)/2];
-      const u3: [number, number] = [(1 + dr * x0)/2, (1 + dr * z0)/2];
-      const u4: [number, number] = [(1 + dr * x0)/2, (1 + dr * z0)/2];
+      const theta = 2 * Math.PI * i / sides;
+      const x = Math.cos(theta);
+      const z = Math.sin(theta);
+      const p1: [number, number, number] = [x * outerRadius, h, z * outerRadius];
+      const p2: [number, number, number] = [x * outerRadius, -h, z * outerRadius];
+      const p3: [number, number, number] = [x * innerRadius, h, z * innerRadius];
+      const p4: [number, number, number] = [x * innerRadius, -h, z * innerRadius];
+      const u1: [number, number] = [(1 + x)/2, (1 + z)/2];
+      const u2: [number, number] = [(1 + x)/2, (1 + z)/2];
+      const u3: [number, number] = [(1 + dr * x)/2, (1 + dr * z)/2];
+      const u4: [number, number] = [(1 + dr * x)/2, (1 + dr * z)/2];
       // add points
       vertices.push(p1, p2, p3, p4);
       uvs.push(u1, u2, u3, u4);
       normals.push([0,1,0],[0,-1,0],[0,1,0],[0,-1,0]);
-      // prepare next slice
-      let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
-      let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
-      x0 = 0 + Number(x1.toFixed(6));
-      z0 = 0 + Number(z1.toFixed(6));
     }
     // generate indexing
     for (let i=0; i<vertices.length-5; i+=2) {
@@ -260,13 +244,14 @@ class Primitives {
     index.push(vertices.length-1, 1, 3);
     // build sides
     const new0 = vertices.length;
-    x0 = 1;
-    z0 = 0;
     for (let i=0; i<sides+1; i++) {
-      const p1: [number, number, number] = [x0 * outerRadius, h, z0 * outerRadius];
-      const p2: [number, number, number] = [x0 * innerRadius, h, z0 * innerRadius];
-      const p3: [number, number, number] = [x0 * outerRadius, -h, z0 * outerRadius];
-      const p4: [number, number, number] = [x0 * innerRadius, -h, z0 * innerRadius];
+      const theta = 2 * Math.PI * i / sides;
+      const x = Math.cos(theta);
+      const z = Math.sin(theta);
+      const p1: [number, number, number] = [x * outerRadius, h, z * outerRadius];
+      const p2: [number, number, number] = [x * innerRadius, h, z * innerRadius];
+      const p3: [number, number, number] = [x * outerRadius, -h, z * outerRadius];
+      const p4: [number, number, number] = [x * innerRadius, -h, z * innerRadius];
       const u1: [number, number] = [i/sides, 1];
       const u2: [number, number] = [i/sides, 1];
       const u3: [number, number] = [i/sides, 0];
@@ -274,12 +259,7 @@ class Primitives {
       // add points
       vertices.push(p1, p2, p3, p4);
       uvs.push(u1, u2, u3, u4);
-      normals.push([x0,0,z0],[x0,0,z0],[x0,0,z0],[x0,0,z0]);
-      // prepare next slice
-      let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
-      let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
-      x0 = 0 + Number(x1.toFixed(6));
-      z0 = 0 + Number(z1.toFixed(6));
+      normals.push([x,0,z],[x,0,z],[x,0,z],[x,0,z]);
     }
     // generate indexing
     for (let i=new0; i<vertices.length-4; i+=2) {
@@ -300,25 +280,21 @@ class Primitives {
     const uvs: Array<[number, number]> = [];
     const normals: Array<[number, number, number]> = [];
     const index: Array<number> = [];
-    const da = 2 * Math.PI / sides;
-    let x0 = 1, z0 = 0;
     // build top
     vertices.push([0, height, 0]);
     uvs.push([0.5, 1]);
     normals.push([0, 1, 0]);
     // build sides
     for (let i=0; i<sides+1; i++) {
-      const p: [number, number, number] = [x0 * radius, 0, z0 * radius];
+      const theta = 2 * Math.PI * i / sides;
+      const x = Math.cos(theta);
+      const z = Math.sin(theta);
+      const p: [number, number, number] = [x * radius, 0, z * radius];
       const u: [number, number] = [i/sides, 0];
       // add points
       vertices.push(p);
       uvs.push(u);
-      normals.push([x0,0,z0]);
-      // prepare next slice
-      let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
-      let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
-      x0 = 0 + Number(x1.toFixed(6));
-      z0 = 0 + Number(z1.toFixed(6));
+      normals.push([x,0,z]);
     }
     // generate indexing
     for (let i=1; i<vertices.length-1; i++) {
@@ -330,20 +306,16 @@ class Primitives {
     normals.push([0, -1, 0]);
     // build bottom
     const new0 = vertices.length;
-    x0 = 1;
-    z0 = 0;
     for (let i=0; i<sides; i++) {
-      const p: [number, number, number] = [x0 * radius, 0, z0 * radius];
-      const u: [number, number] = [(1 + x0)/2, (1 + z0)/2];
+      const theta = 2 * Math.PI * i / sides;
+      const x = Math.cos(theta);
+      const z = Math.sin(theta);
+      const p: [number, number, number] = [x * radius, 0, z * radius];
+      const u: [number, number] = [(1 + x)/2, (1 + z)/2];
       // add points
       vertices.push(p);
       uvs.push(u);
       normals.push([0,-1,0]);
-      // prepare next slice
-      let x1 = Math.cos(da) * x0 - Math.sin(da) * z0;
-      let z1 = Math.cos(da) * z0 + Math.sin(da) * x0;
-      x0 = 0 + Number(x1.toFixed(6));
-      z0 = 0 + Number(z1.toFixed(6));
     }
     // generate index
     for (let i=new0; i<vertices.length; i++) {
@@ -362,7 +334,7 @@ class Primitives {
     const index: Array<number> = [];
     // add top point
     vertices.push([0, radius, 0]);
-    uvs.push([0,1]);
+    uvs.push([0.5,0.5]);
     normals.push([0,1,0]);
     // generate points per slice
     for (let i=0; i<slices - 1; i++) {
@@ -373,7 +345,7 @@ class Primitives {
         const y = Math.cos(phi);
         const z = Math.sin(phi) * Math.sin(theta);
         const p: [number, number, number] = [x * radius, y * radius, z * radius];
-        const u: [number, number] = [(1 + x)/2, (1 + y)/2];
+        const u: [number, number] = [(1 + x)/2, (1 + z)/2];
         // add points
         vertices.push(p);
         uvs.push(u);
@@ -382,7 +354,7 @@ class Primitives {
     }
     // add bottom point
     vertices.push([0, -radius, 0]);
-    uvs.push([1,0]);
+    uvs.push([0.5,0.5]);
     normals.push([0,-1,0]);
     // generate top/bottom index
     for (let i=0; i < sides; i++) {
@@ -404,6 +376,75 @@ class Primitives {
         index.push(i0, i1, i2, i2, i3, i0);
       }
     }
+
+    return { vertices, uvs, normals, index };
+  }
+  static hemisphere(radius:number, sides:number, slices:number): Shape {
+    if (sides < 3) throw new Error("Sides count must be greater than 2");
+    const vertices: Array<[number, number, number]> = [];
+    const uvs: Array<[number, number]> = [];
+    const normals: Array<[number, number, number]> = [];
+    const index: Array<number> = [];
+    // add top point
+    vertices.push([0, radius, 0]);
+    uvs.push([0.5,0.5]);
+    normals.push([0,1,0]);
+    // generate points per slice
+    for (let i=0; i<slices; i++) {
+      const phi = Math.PI * (i+1) / (2 * slices);
+      for (let j=0; j<sides; j++) {
+        const theta = 2 * Math.PI * j / sides;
+        const x = Math.sin(phi) * Math.cos(theta);
+        const y = Math.cos(phi);
+        const z = Math.sin(phi) * Math.sin(theta);
+        const p: [number, number, number] = [x * radius, y * radius, z * radius];
+        const u: [number, number] = [(1 + x)/2, (1 + z)/2];
+        // add points
+        vertices.push(p);
+        uvs.push(u);
+        normals.push([x,y,z]);
+      }
+    }
+    // generate top index
+    for (let i=0; i < sides; i++) {
+      let i0 = i + 1, i1 = (i + 1) % sides + 1;
+      index.push(0, i1, i0);
+    }
+    // generate slice indices
+    for (let j = 0; j < slices - 1; j++) {
+      let j0 = j * sides + 1;
+      let j1 = (j + 1) * sides + 1;
+      for (let i=0; i < sides; i++) {
+        let i0 = j0 + i;
+        let i1 = j0 + (i + 1) % sides;
+        let i2 = j1 + (i + 1) % sides;
+        let i3 = j1 + i;
+        index.push(i0, i1, i2, i2, i3, i0);
+      }
+    }
+    // generate bottom face
+    const new0 = vertices.length;
+    for (let i=0; i < sides; i++) {
+      const theta = 2 * Math.PI * i / sides;
+      const x = Math.cos(theta);
+      const z = Math.sin(theta);
+      const p: [number, number, number] = [x * radius, 0, z * radius];
+      const u: [number, number] = [(1 + x)/2, (1 + z)/2];
+      // add points
+      vertices.push(p);
+      uvs.push(u);
+      normals.push([0,-1,0]);
+    }
+    // add bottom point
+    vertices.push([0, 0, 0]);
+    uvs.push([0.5,0.5]);
+    normals.push([0,-1,0]);
+    const center = vertices.length - 1;
+    // index bottom face
+    for (let i=0; i < sides - 1; i++) {
+      index.push(center, new0 + i, new0 + i + 1);
+    }
+    index.push(center, center - 1, new0);
 
     return { vertices, uvs, normals, index };
   }
