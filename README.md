@@ -163,6 +163,7 @@ const obj = renderer.addObjectAsBuffers(
 <b>0.2.2</b>
 - Flipped vertical UV value on bottom face of cylinder/pipe/cone
 - Added explicit dynamic setting to custom uniforms
+(`dynamic: true` should be added to any existing custom uniforms)
 
 <b>0.2.1</b>
 - Added hemisphere primitive
