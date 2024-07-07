@@ -32,8 +32,9 @@ async function example1(renderer: Renderer): Promise<{ update:Function, resize:F
   const tx1: number = await renderer.addTexture(400, 400, BASE_URL + '/logo.png');
   const tx2: number = await renderer.addTexture(512, 512, undefined, true);
   const custom: Array<UniformDescription> = [
-    { bindSlot: 0, visibility: 'fragment', type: 'vec3f' },
-    { bindSlot: 1, visibility: 'fragment', type: 'f32' }
+    { bindSlot: 0, dynamic:true, visibility: 'fragment', type: 'vec3f' },
+    { bindSlot: 1, dynamic:true, visibility: 'fragment', type: 'f32' },
+    { bindSlot: 2, dynamic:false, visibility: 'fragment', type: 'vec3f' },
   ]
   const pipe1 = renderer.addPipeline(shader2, 10, { texture1Id: tx2 });
   const pipe2 = renderer.addPipeline(shader4, 100, { texture1Id: tx1, uniforms:custom });

@@ -269,13 +269,16 @@ class Renderer {
   }
   /**
    * Creates rendering pipeline to feed render objects into
+   * 
    * - Bind groups/uniforms are bundled together with the pipeline
-   * - Uses dynamic offsets for buffers to optimize memory usage
+   * - Can use dynamic offsets for buffers to optimize memory usage
+   * - Custom uniforms are separated into bind group 1
    * 
    * @param {string} shader wgsl shader as a string
    * @param {number} maxObjCount keep low to minimize memory consumption
    * @param {object} options optional configurations for pipeline
-   * @param {number} options.textureId texture must be added to cache, then referenced here
+   * @param {number} options.texture1Id texture must be added to cache, then referenced here
+   * @param {number} options.texture2Id second texture reference if necessary
    * @param {GPUCullMode} options.cullMode ['front','back','none'] affects transparency
    * @param {string} options.vertexFunction name for vertex function
    * @param {string} options.fragmentFunction name for fragment function
@@ -322,11 +325,13 @@ class Renderer {
         let visibility = GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT;
         if (uniform.visibility === "fragment") visibility = GPUShaderStage.FRAGMENT;
         else if (uniform.visibility === 'vertex') visibility = GPUShaderStage.VERTEX;
-        return {
+        let entry = {
           binding: uniform.bindSlot,
           visibility,
-          buffer: { hasDynamicOffset: true }
+          buffer: {}
         }
+        if (uniform.dynamic) entry.buffer = { hasDynamicOffset: true };
+        return entry;
       });
       const bindGroup1Layout: GPUBindGroupLayout = this.#device.createBindGroupLayout({
         label: "bind-group-1-layout",
@@ -460,6 +465,7 @@ class Renderer {
     const minStrideSize: number = this.limits.minUniformBufferOffsetAlignment;
     const bindEntries: Array<GPUBuffer> = []; 
     const bindDesc: Array<GPUBindGroupEntry> = [];
+    const dynRef: Array<boolean> = [];
     uniforms.forEach((uniform, i) => {
       let sizeInBytes = uniform.sizeInBytes || 0;
       switch (uniform.type) {
@@ -480,7 +486,7 @@ class Renderer {
         default:
           break;
       }
-      const size = minStrideSize * maxObjCount;
+      const size = uniform.dynamic ? minStrideSize * maxObjCount : sizeInBytes;
       const entry: GPUBuffer = this.#device.createBuffer({
         label: `custom-uniform-${i}`,
         size: size,
@@ -492,6 +498,7 @@ class Renderer {
         resource: { buffer:entry, size: sizeInBytes }
       }
       bindDesc.push(desc);
+      dynRef.push(uniform.dynamic);
     });
     // create bind group
     const bindGroup: GPUBindGroup = this.#device.createBindGroup({
@@ -501,7 +508,8 @@ class Renderer {
     });
     const out: RenderBindGroup = {
       base: bindGroup,
-      entries: bindEntries
+      entries: bindEntries,
+      dynRef,
     }
     return out;
   }
@@ -702,6 +710,7 @@ class Renderer {
     if (!obj) throw new Error(`Could not find object ${objectId}`);
     
     obj.visible = visible ?? true;
+    if (!obj.visible) return;
     // model matrix
     const modelt: Float32Array = Mat4.translate(translate?.[0] || 0, translate?.[1] || 0, translate?.[2] || 0);
     const modelr: Float32Array = Mat4.rotate(rotateAxis || [0,0,1], (rotateDeg || 0) * Math.PI / 180);
@@ -737,8 +746,13 @@ class Renderer {
     // update custom uniforms
     if (dpipe.bindGroup1 && input.uniformData) {
       dpipe.bindGroup1.entries.forEach((buffer, i) => {
-        if (!input.uniformData?.[i]) return;
-        this.#device.queue.writeBuffer(buffer, stride * obj.pipelineIndex, input.uniformData[i]);
+        if (!input.uniformData?.[i] || input.uniformData[i] === null) return;
+        const bufferData: Float32Array | Int32Array = input.uniformData[i] ?? new Int32Array;
+        if (dpipe.bindGroup1?.dynRef?.[i]) {
+          this.#device.queue.writeBuffer(buffer, stride * obj.pipelineIndex, bufferData);
+        } else {
+          this.#device.queue.writeBuffer(buffer, 0, bufferData);
+        }
       });
     }
   }
@@ -792,7 +806,10 @@ class Renderer {
         pass.setVertexBuffer(2, obj.normalBuffer);
         pass.setBindGroup(0, pipeline.bindGroup0.base, [stride * obj.pipelineIndex]);
         if (pipeline.bindGroup1) {
-          const offsets = pipeline.bindGroup1.entries.map(_ => stride * obj.pipelineIndex);
+          const offsets: Array<number> = [];
+          pipeline.bindGroup1.dynRef?.forEach(dyn => {
+            if (dyn) offsets.push(stride * obj.pipelineIndex);
+          });
           pass.setBindGroup(1, pipeline.bindGroup1.base, offsets);
         }
         if (obj.indexBuffer && obj.indexCount) {

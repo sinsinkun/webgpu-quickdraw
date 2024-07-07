@@ -68,6 +68,7 @@ export interface RenderObject {
 export interface RenderBindGroup {
   base: GPUBindGroup,
   entries: Array<GPUBuffer>,
+  dynRef?: Array<boolean>,
 }
 
 // render pipeline information
@@ -103,7 +104,9 @@ export interface BufferShape {
  * Inputs for updating an object in a pipeline
  * 
  * Note that uniformData arrays must be in the Float32Array/Int32Array format,
- * not as a default js array. The Vec.float() function can also be used.
+ * not as a default js array. The Vec.float()/Vec.int() functions can also be used.
+ * 
+ * If a buffer entry is not dynamic, it can be set by the first object and left null otherwise.
  * 
  * Also note that even individual values must be wrapped in a Float32Array/Int32Array
  * due to fixed size requirements
@@ -116,7 +119,7 @@ export interface BufferShape {
  * @param {[number, number, number]} scale
  * @param {boolean} visible whether or not to render the object
  * @param {Camera} camera camera object to determine view transform
- * @param {Array<Float32Array | Int32Array>} uniformData custom uniform data can be passed in here
+ * @param {Array<Float32Array | Int32Array | null>} uniformData custom uniform data can be passed in here
  */
 export interface UpdateData {
   pipelineId: number,
@@ -127,7 +130,7 @@ export interface UpdateData {
   scale?: [number, number, number],
   visible?: boolean,
   camera?: Camera,
-  uniformData?: Array<Float32Array | Int32Array>
+  uniformData?: Array<Float32Array | Int32Array | null>
 }
 
 /**
@@ -145,6 +148,7 @@ export interface UpdateData {
 export interface UniformDescription {
   bindSlot: number,
   visibility: 'vertex' | 'fragment' | 'both',
+  dynamic: boolean,
   type: 'i32' | 'f32' | 'vec2f'| 'vec3f' | 'vec4f' | 'struct',
   sizeInBytes?: number,
 }
