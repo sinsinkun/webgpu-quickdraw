@@ -731,7 +731,7 @@ class Renderer {
     const h2 = this.#height/2;
     let proj: Float32Array;
     if (camera?.type === "persp") proj = Mat4.perspective(camera.fovY, w2/h2, camera.near, camera.far);
-    else proj = Mat4.ortho(-w2, w2, h2, -h2, camera?.near, camera?.far);
+    else proj = Mat4.ortho(-w2, w2, -h2, h2, camera?.near, camera?.far);
     // join everything together
     const mat4Size: number = 4 * 4;
     const mvpSize: number = 4 * 4 * 3; // mat4 32bit/4byte floats
